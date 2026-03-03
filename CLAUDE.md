@@ -2,68 +2,157 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Project Mission
 
-A minimalist design for hosting Claude agents remotely with web interface access.
+Host Claude Code agents in the cloud so users can remotely start tasks and get real-time feedback through a web UI. The system manages agent lifecycles, persists all events, and provides memory continuity across sessions.
+
+**Core user flow:** User opens web UI → starts a task → a remote Claude Code agent executes it → events stream back to the UI in real time → results and context persist for future sessions.
 
 ## Architecture
 
-Polyglot monorepo structure:
-- `py/` - Python backend (uv workspace)
-- `ts/` - TypeScript web frontend (planned)
+Turborepo monorepo (all TypeScript):
 
-### Python (`py/`)
-
-uv-based workspace with:
-- `py/packages/` - Shared libraries and reusable components
-- `py/apps/` - Deployable applications
+```
+├── ts/
+│   ├── apps/
+│   │   ├── web/                # React UI for task submission & live feedback
+│   │   └── server/             # API server (REST + SSE streaming)
+│   ├── packages/
+│   │   ├── event-store/        # Event persistence layer
+│   │   ├── memory-service/     # Agent memory / context management
+│   │   ├── agent-manager/      # Agent lifecycle (spawn, monitor, stop)
+│   │   └── shared/             # Shared types and utilities
+│   ├── turbo.json              # Turborepo pipeline configuration
+│   ├── package.json            # Root package.json with workspaces
+│   └── tsconfig.base.json      # Shared TypeScript config
+├── docker/
+│   ├── Dockerfile.agent        # Claude Code agent runner image
+│   ├── Dockerfile.server       # API server image
+│   └── docker-compose.yml      # Full stack orchestration
+└── CLAUDE.md
+```
 
 ### Design Principles
 
-Packages are designed to be **independent** - they define their own protocols/interfaces and do not import from each other. Integration happens at the app level through adapters.
+- Packages are **independent** — they define their own types/interfaces and do not import from each other. Integration happens at the app level through adapters.
+- **Event-sourced** — all agent activity is captured as an ordered event stream, enabling replay, debugging, and real-time UI updates.
+- **Stateless API, stateful agents** — the API server is horizontally scalable; agent state lives in the event store and memory service.
 
-### Packages
+### Code Guidelines
 
-- **event-store** (`py/packages/event_store/`) - Abstract event store interface for persisting and retrieving events. Defines `EventStore` protocol with `append`, `get_events`, `subscribe` methods.
+- **Interface-first** — every service boundary must be defined as a TypeScript interface (`EventStore`, `MemoryService`, `AgentRunner`, etc.). Packages export interfaces and implementations separately. No module should depend on a concrete class it doesn't own.
+- **Dependency injection over direct imports** — packages and library code depend only on interfaces. Concrete implementations are wired together at the app level (see `services.ts`). Use dynamic `import()` or factory functions so the top-level module graph stays free of heavy transitive dependencies.
+- **Minimal dependencies** — add a dependency only when it provides clear value over a small amount of hand-written code. Prefer Node built-ins and the standard library. Audit `package.json` before adding anything — if a similar capability already exists in the dependency tree, use it.
+- **Lean Docker images** — use Alpine base images. Only install build-time native deps (e.g., `python3 make g++`) in a builder stage; keep the runtime stage clean. Never copy `devDependencies` or test fixtures into production images.
 
-- **api** (`py/packages/api/`) - REST API for session events and SSE streaming. Defines its own `EventSource` protocol for dependency injection. Use `create_router(get_event_source)` to create the FastAPI router.
+## Packages
+
+### event-store (`ts/packages/event-store/`)
+
+Abstract event store interface for persisting and retrieving events. Defines `EventStore` interface with `append`, `getEvents`, `subscribe` methods. Backends can be in-memory (dev), SQLite (single-node), or PostgreSQL (production).
+
+### api server (`ts/apps/server/`)
+
+REST API for session events and SSE streaming. Defines its own `EventSource` interface for dependency injection.
+
+Key endpoints:
+- `POST /sessions` — create a new agent session
+- `POST /sessions/{id}/tasks` — submit a task to a session
+- `GET /sessions/{id}/events` — SSE stream of session events
+- `GET /sessions/{id}` — session status and metadata
+- `DELETE /sessions/{id}` — stop and clean up a session
+
+### memory-service (`ts/packages/memory-service/`)
+
+Manages persistent context and memory for agents across sessions. Provides:
+- Session-scoped memory (conversation context within a task)
+- Project-scoped memory (knowledge that persists across tasks in the same project)
+- Memory retrieval by relevance for agent context injection
+
+### agent-manager (`ts/packages/agent-manager/`)
+
+Manages the full agent lifecycle:
+- **Spawn** — start a Claude Code agent process (local subprocess or Docker container)
+- **Monitor** — track agent health, capture stdout/stderr as events
+- **Stop** — graceful shutdown with timeout, then force kill
+- **Resume** — restart an agent with prior context from memory service
+
+Defines `AgentRunner` interface so backends (subprocess, Docker, Kubernetes) are swappable.
+
+## Docker Setup
+
+### Development
+
+```bash
+docker compose -f docker/docker-compose.yml up    # Start full stack
+docker compose -f docker/docker-compose.yml up -d  # Detached mode
+docker compose -f docker/docker-compose.yml down   # Tear down
+```
+
+### Images
+
+- **server** — Node.js API server. Exposes port 8000. Requires `ANTHROPIC_API_KEY` env var.
+- **agent** — Claude Code runner. Each agent task spawns a container from this image. Mounts a workspace volume for file access.
+- **web** — Static frontend served by nginx. Connects to the API server via reverse proxy.
+
+### Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes | API key for Claude |
+| `EVENT_STORE_URL` | No | Event store connection string (default: SQLite in `./data/`) |
+| `AGENT_RUNNER` | No | Agent backend: `subprocess` (default), `docker`, `kubernetes` |
+| `CORS_ORIGINS` | No | Allowed CORS origins (default: `http://localhost:3000`) |
+
+## Remote Access
+
+The system is designed for remote operation:
+- API server exposes a REST + SSE interface — any HTTP client can interact with it
+- Web UI connects over HTTPS in production (reverse proxy with TLS termination)
+- Agent processes run server-side; no local Claude Code installation needed on the client
+- SSE provides real-time streaming of agent output to the browser
 
 ## Common Commands
 
-All Python commands run from `py/` directory.
+All commands run from `ts/` directory.
 
 ### Environment Setup
 ```bash
-cd py && uv sync --all-packages   # Sync all workspace packages
+cd ts && npm install              # Install all workspace dependencies
 ```
 
-### Running Applications
+### Development
 ```bash
-cd py && uv run python -m <app_name>       # Run an application
-cd py && uv run --package <pkg> <command>  # Run command in specific package context
+cd ts && npx turbo dev            # Run all apps in dev mode
+cd ts && npx turbo dev --filter=web        # Run only the web app
+cd ts && npx turbo dev --filter=server     # Run only the API server
+```
+
+### Building
+```bash
+cd ts && npx turbo build          # Build all packages and apps
+cd ts && npx turbo build --filter=<pkg>    # Build a specific package/app
 ```
 
 ### Testing
 ```bash
-cd py && uv run pytest                     # Run all tests
-cd py && uv run pytest packages/<pkg>      # Run tests for specific package
-cd py && uv run pytest -k "test_name"      # Run specific test by name
+cd ts && npx turbo test           # Run all tests
+cd ts && npx turbo test --filter=<pkg>     # Run tests for specific package
 ```
 
 ### Linting and Formatting
 ```bash
-cd py && uv run ruff check .               # Lint code
-cd py && uv run ruff format .              # Format code
-cd py && uv run ruff check --fix .         # Auto-fix lint issues
+cd ts && npx turbo lint           # Lint all packages
+cd ts && npx turbo format         # Format all packages
 ```
 
 ### Type Checking
 ```bash
-cd py && uv run pyright                    # Run type checker
+cd ts && npx turbo typecheck      # Type check all packages
 ```
 
 ### Adding Dependencies
 ```bash
-cd py && uv add <package>                  # Add to root
-cd py && uv add --package <pkg> <dep>      # Add to specific workspace package
+cd ts/apps/<app> && npm install <dep>          # Add to a specific app
+cd ts/packages/<pkg> && npm install <dep>      # Add to a specific package
 ```

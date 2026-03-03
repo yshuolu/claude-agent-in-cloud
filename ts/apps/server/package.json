@@ -1,0 +1,28 @@
+{
+  "name": "@cloud-agent/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cloud-agent/agent-manager": "*",
+    "@cloud-agent/event-store": "*",
+    "@cloud-agent/memory-service": "*",
+    "@cloud-agent/shared": "*",
+    "@hono/node-server": "^1.13.0",
+    "dotenv": "^17.3.1",
+    "hono": "^4.7.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.0"
+  }
+}

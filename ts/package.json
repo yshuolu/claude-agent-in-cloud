@@ -1,0 +1,23 @@
+{
+  "name": "cloud-agent",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:server": "turbo run dev --filter=@cloud-agent/server",
+    "dev:web": "turbo run dev --filter=@cloud-agent/web",
+    "start:server": "node apps/server/dist/index.js",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck"
+  },
+  "packageManager": "npm@10.9.2",
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  }
+}
