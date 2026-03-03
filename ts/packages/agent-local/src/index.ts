@@ -1,23 +1,15 @@
 import { randomUUID } from "node:crypto";
-import {
-  runAgentSession,
-  DEFAULT_SYSTEM_PROMPT,
-  type McpServerConfig,
-} from "@cloud-agent/base-agent";
+import { createServer } from "node:http";
+import { runAgentSession } from "@cloud-agent/base-agent";
 import { HttpEventSink } from "./http-sink.js";
 
+const AGENT_PORT = parseInt(process.env.AGENT_PORT ?? "9100", 10);
+
 async function main(): Promise<void> {
-  const prompt = process.env.AGENT_PROMPT;
   const model = process.env.AGENT_MODEL;
   const sessionId = process.env.AGENT_SESSION_ID ?? randomUUID();
   const serverUrl = process.env.SERVER_URL;
-  const sdkSessionId = process.env.AGENT_SDK_SESSION_ID;
   const authToken = process.env.AGENT_AUTH_TOKEN;
-
-  if (!prompt) {
-    console.error("[agent] AGENT_PROMPT is required");
-    process.exit(1);
-  }
 
   if (!serverUrl) {
     console.error("[agent] SERVER_URL is required");
@@ -26,23 +18,68 @@ async function main(): Promise<void> {
 
   const sink = new HttpEventSink(serverUrl, sessionId, authToken);
 
-  // Build MCP server list — all MCPs inherit AGENT_AUTH_TOKEN + SERVER_URL from env
-  const mcpServers: McpServerConfig[] = [
-    {
-      name: "project-management",
-      command: "mcp-project-management",
-    },
-  ];
+  // Prompt queue — HTTP handler pushes, session loop consumes
+  const promptQueue: string[] = [];
+  let resolveWait: (() => void) | null = null;
+
+  async function* prompts(): AsyncIterable<string> {
+    while (true) {
+      while (promptQueue.length > 0) {
+        yield promptQueue.shift()!;
+      }
+      // Wait for the next prompt to arrive
+      await new Promise<void>((resolve) => {
+        resolveWait = resolve;
+      });
+      resolveWait = null;
+    }
+  }
+
+  function enqueuePrompt(prompt: string): void {
+    promptQueue.push(prompt);
+    if (resolveWait) resolveWait();
+  }
+
+  // HTTP server to receive prompts
+  const server = createServer((req, res) => {
+    if (req.method === "POST" && req.url === "/message") {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", () => {
+        try {
+          const parsed = JSON.parse(body) as { prompt?: string };
+          if (!parsed.prompt) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "prompt is required" }));
+            return;
+          }
+          enqueuePrompt(parsed.prompt);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true }));
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "invalid JSON" }));
+        }
+      });
+    } else if (req.method === "GET" && req.url === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok" }));
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  server.listen(AGENT_PORT, () => {
+    console.log(`[agent] listening on port ${AGENT_PORT}`);
+  });
 
   try {
     await runAgentSession({
       sessionId,
-      prompt,
+      prompts: prompts(),
       model,
       sink,
-      sdkSessionId,
-      systemPrompt: DEFAULT_SYSTEM_PROMPT,
-      mcpServers,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -59,6 +96,8 @@ async function main(): Promise<void> {
       // Best-effort error reporting
     }
     process.exit(1);
+  } finally {
+    server.close();
   }
 }
 

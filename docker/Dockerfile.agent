@@ -3,8 +3,7 @@ FROM node:22-alpine AS deps
 
 WORKDIR /build
 
-# Copy root workspace config
-COPY ts/package.json ts/package-lock.json* ./
+# Copy tsconfig base (no lock file — scoped workspace differs from full monorepo)
 COPY ts/tsconfig.base.json ./
 
 # Copy only the packages needed by the agent
@@ -13,8 +12,12 @@ COPY ts/packages/agent-local/package.json packages/agent-local/package.json
 COPY ts/packages/project-management/package.json packages/project-management/package.json
 COPY ts/mcps/project-management/package.json mcps/project-management/package.json
 
-# Install dependencies (workspaces subset)
-RUN npm install --workspaces --include-workspace-root
+# Scoped root package.json — only reference workspaces present in the image
+# Include claude-agent-sdk at root to ensure hoisting
+RUN echo '{"private":true,"workspaces":["packages/*","mcps/*"],"devDependencies":{"typescript":"^5.7.0"},"dependencies":{"@anthropic-ai/claude-agent-sdk":"^0.2.63"}}' > package.json
+
+# Install dependencies — npm hoists everything to root node_modules
+RUN npm install
 
 # Copy source and build
 COPY ts/packages/base-agent/src packages/base-agent/src
@@ -47,5 +50,18 @@ COPY --from=deps /build/packages/project-management/package.json packages/projec
 COPY --from=deps /build/mcps/project-management/dist mcps/project-management/dist
 COPY --from=deps /build/mcps/project-management/package.json mcps/project-management/package.json
 COPY --from=deps /build/package.json ./package.json
+
+# MCP servers — .mcp.json at project root, auto-loaded by SDK
+COPY docker/agent-mcp.json .mcp.json
+
+# Claude config — trust dialog pre-accepted, .mcp.json servers enabled
+ENV CLAUDE_CONFIG_DIR=/root/.claude
+COPY docker/agent-claude.json /root/.claude/.claude.json
+COPY skills/ /root/.claude/skills/
+
+# System prompt
+COPY docker/agent-claude.md CLAUDE.md
+
+EXPOSE 9100
 
 CMD ["node", "packages/agent-local/dist/index.js"]

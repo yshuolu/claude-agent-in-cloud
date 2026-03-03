@@ -1,0 +1,16 @@
+[project]
+name = "cloud-agent-py"
+version = "0.1.0"
+description = "Python monorepo for cloud agent"
+requires-python = ">=3.12"
+dependencies = [
+    "base-agent",
+    "agent-local",
+]
+
+[tool.uv.sources]
+base-agent = { workspace = true }
+agent-local = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/*"]

@@ -40,3 +40,12 @@ services:
     # Not started by compose — spawned on demand by the server
     profiles:
       - build-only
+
+  agent-py:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.agent-py
+    image: cloud-agent-runner-py
+    # Not started by compose — spawned on demand by the server
+    profiles:
+      - build-only

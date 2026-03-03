@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import type { StoredEvent } from "@cloud-agent/event-store";
-import type { AgentRunner, AgentStore } from "@cloud-agent/agent-manager";
+import type { AgentRunner, AgentHandle, AgentStore } from "@cloud-agent/agent-manager";
 import {
   appendEvent,
   updateStatus,
@@ -12,6 +12,9 @@ import {
 
 let agentRunner: AgentRunner;
 let agentStore: AgentStore;
+
+// Track live agent handles per session
+const agentHandles = new Map<string, AgentHandle>();
 
 export function initAgentRunner(runner: AgentRunner): void {
   agentRunner = runner;
@@ -25,25 +28,21 @@ export interface RunAgentOptions {
   sessionId: string;
   prompt: string;
   projectId: string;
-  resume?: boolean;
 }
 
 export async function runAgent(options: RunAgentOptions): Promise<void> {
-  const { sessionId, prompt, projectId, resume } = options;
-  updateStatus(sessionId, "running");
+  const { sessionId, prompt, projectId } = options;
 
-  // Build prompt with memory context if resuming
-  let fullPrompt = prompt;
-  const memorySvc = getMemoryService();
-  if (resume) {
-    const memories = memorySvc.retrieve(projectId, { limit: 20 });
-    if (memories.length > 0) {
-      const memoryContext = memories
-        .map((m) => `- ${m.content}`)
-        .join("\n");
-      fullPrompt = `## Context from previous sessions\n${memoryContext}\n\n${prompt}`;
-    }
+  // If an agent is already running for this session, send the follow-up prompt
+  const existingHandle = agentHandles.get(sessionId);
+  if (existingHandle) {
+    updateStatus(sessionId, "running");
+    await existingHandle.send(prompt);
+    return;
   }
+
+  // First turn — spawn a new agent container
+  updateStatus(sessionId, "running");
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -59,9 +58,10 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     return;
   }
 
+  // From inside Docker, localhost refers to the container — use host.docker.internal on macOS/Windows
   const serverUrl =
     process.env.SERVER_URL ??
-    `http://localhost:${process.env.PORT ?? "8000"}`;
+    `http://host.docker.internal:${process.env.PORT ?? "8000"}`;
 
   const authToken = uuidv4();
   const agentId = uuidv4();
@@ -76,11 +76,10 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     stoppedAt: null,
   });
 
-  let handle;
+  let handle: AgentHandle;
   try {
     handle = await agentRunner.spawn({
       sessionId,
-      prompt: fullPrompt,
       model: process.env.CLAUDE_MODEL ?? "claude-sonnet-4-5-20250929",
       apiKey,
       serverUrl,
@@ -101,12 +100,49 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     return;
   }
 
-  setStopFn(sessionId, () => handle.stop());
+  agentHandles.set(sessionId, handle);
+  setStopFn(sessionId, async () => {
+    agentHandles.delete(sessionId);
+    await handle.stop();
+  });
 
+  // Stream container logs to server console
+  if (handle.logs) {
+    streamLogs(handle.logs, sessionId);
+  }
+
+  // Send the first prompt to the agent's HTTP endpoint
+  await handle.send(prompt);
+
+  // Monitor the agent process in the background
+  monitorAgent(handle, sessionId, agentId, projectId);
+}
+
+function streamLogs(
+  logs: AsyncIterable<string>,
+  sessionId: string,
+): void {
+  (async () => {
+    try {
+      for await (const line of logs) {
+        console.log(`[agent:${sessionId.slice(0, 8)}] ${line}`);
+      }
+    } catch {
+      // Log stream ended
+    }
+  })();
+}
+
+async function monitorAgent(
+  handle: AgentHandle,
+  sessionId: string,
+  agentId: string,
+  projectId: string,
+): Promise<void> {
   try {
-    // Agent writes events via HTTP POST to this server.
-    // We just wait for the process to finish.
     const { exitCode } = await handle.done;
+
+    agentHandles.delete(sessionId);
 
     if (getSession(sessionId)) {
       if (exitCode !== null && exitCode !== 0) {
@@ -123,11 +159,14 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
       );
       const events = getEventStore().getEvents(sessionId);
       const memories = extractMemories(sessionId, projectId, events);
+      const memorySvc = getMemoryService();
       for (const memory of memories) {
         memorySvc.store(memory);
       }
     }
   } catch (err) {
+    agentHandles.delete(sessionId);
+
     if (getSession(sessionId)) {
       const errorEvent: StoredEvent = {
         id: uuidv4(),

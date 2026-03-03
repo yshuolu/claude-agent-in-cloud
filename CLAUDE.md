@@ -122,6 +122,8 @@ docker compose -f docker/docker-compose.yml down   # Tear down
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Yes | API key for Claude |
 | `AGENT_RUNNER` | No | Agent backend: `subprocess` (local dev), `docker` (default), `flyio` |
+| `AGENT_IMAGE` | No | Docker image name for the agent (default: `cloud-agent-runner`) |
+| `AGENT_DOCKERFILE` | No | Dockerfile path for auto-build (default: `docker/Dockerfile.agent`) |
 | `SERVER_URL` | No | URL agents use to POST events back (default: `http://localhost:8000`) |
 | `CORS_ORIGINS` | No | Allowed CORS origins (default: `http://localhost:3000`) |
 
@@ -177,3 +179,7 @@ cd ts && npx turbo typecheck      # Type check all packages
 cd ts/apps/<app> && npm install <dep>          # Add to a specific app
 cd ts/packages/<pkg> && npm install <dep>      # Add to a specific package
 ```
+
+## Python Guidelines
+
+- **All async code must use `asyncio`** — no threading, no `concurrent.futures`, no sync blocking calls in async contexts. Use `asyncio.Queue`, `asyncio.Event`, and `asyncio.Task` for coordination. HTTP servers and clients must be async-native (e.g., `aiohttp`).

@@ -1,0 +1,11 @@
+{
+  "projects": {
+    "/app": {
+      "allowedTools": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": ["project-management"],
+      "hasTrustDialogAccepted": true,
+      "hasClaudeMdExternalIncludesApproved": true
+    }
+  }
+}

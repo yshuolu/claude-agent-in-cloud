@@ -20,6 +20,17 @@ export default function App() {
 
   const activeSession = sessions.find((s) => s.id === activeId);
 
+  // When the agent finishes a turn, set session status back to idle
+  useEffect(() => {
+    if (!activeId || events.length === 0) return;
+    const last = events[events.length - 1];
+    if (last.type === "turn_complete") {
+      setSessions((prev) =>
+        prev.map((s) => (s.id === activeId ? { ...s, status: "idle" as const } : s)),
+      );
+    }
+  }, [events, activeId]);
+
   const refresh = useCallback(async () => {
     const list = await listSessions();
     setSessions(list);

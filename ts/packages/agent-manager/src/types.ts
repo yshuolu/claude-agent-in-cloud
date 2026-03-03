@@ -5,6 +5,8 @@ export interface AgentHandle {
   sessionId: string;
   /** Diagnostic logs from agent process (NOT event data) */
   logs?: AsyncIterable<string>;
+  /** Send a follow-up prompt to the running agent */
+  send(prompt: string): Promise<void>;
   /** Stop the agent gracefully, then force kill after timeout */
   stop(): Promise<void>;
   /** Promise that resolves when the agent exits */
@@ -13,14 +15,11 @@ export interface AgentHandle {
 
 export interface SpawnOptions {
   sessionId: string;
-  prompt: string;
   model?: string;
   apiKey: string;
   workDir?: string;
   /** Server URL for agent to POST events to */
   serverUrl?: string;
-  /** SDK session ID for resuming a prior session */
-  sdkSessionId?: string;
   /** Auth token for agent to authenticate with the server */
   authToken?: string;
 }

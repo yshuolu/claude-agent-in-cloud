@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import type { StoredEvent } from "@cloud-agent/event-store";
-import { getSession, getEventStore, appendEvent } from "../session-store.js";
+import { getSession, getEventStore, appendEvent, updateStatus } from "../session-store.js";
 import { agentAuth } from "../middleware/auth.js";
 
 const app = new Hono();
@@ -21,6 +21,12 @@ app.post("/:id/events", agentAuth, async (c) => {
   }
 
   appendEvent(sessionId, body);
+
+  // When the agent finishes a turn, set session back to idle
+  if (body.type === "turn_complete") {
+    updateStatus(sessionId, "idle");
+  }
+
   return c.json({ ok: true }, 201);
 });
 

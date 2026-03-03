@@ -1,0 +1,68 @@
+# Build stage: install Python dependencies
+FROM python:3.12-alpine AS deps
+
+RUN apk add --no-cache gcc musl-dev
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /build
+
+# Copy workspace config
+COPY py/pyproject.toml ./pyproject.toml
+
+# Copy package configs
+COPY py/packages/base-agent/pyproject.toml packages/base-agent/pyproject.toml
+COPY py/packages/agent-local/pyproject.toml packages/agent-local/pyproject.toml
+
+# Create package source dirs so uv can resolve workspace members
+RUN mkdir -p packages/base-agent/src/base_agent && \
+    touch packages/base-agent/src/base_agent/__init__.py && \
+    mkdir -p packages/agent-local/src/agent_local && \
+    touch packages/agent-local/src/agent_local/__init__.py
+
+# Install dependencies
+RUN uv sync --no-dev --no-editable
+
+# Copy source code
+COPY py/packages/base-agent/src packages/base-agent/src
+COPY py/packages/agent-local/src packages/agent-local/src
+
+# Reinstall workspace packages with actual source
+RUN uv sync --no-dev --no-editable
+
+# Runtime stage: same Python base so venv paths match
+FROM python:3.12-alpine AS runner
+
+# Node.js is required because claude CLI is a Node script
+RUN apk add --no-cache nodejs npm && \
+    npm install -g @anthropic-ai/claude-code
+
+# Non-root user — claude CLI refuses bypassPermissions as root
+RUN adduser -D agent
+WORKDIR /home/agent/app
+
+# Copy the Python virtual environment
+COPY --from=deps /build/.venv /home/agent/app/.venv
+
+# Claude config — trust dialog pre-accepted (Python agent uses its own config)
+ENV CLAUDE_CONFIG_DIR=/home/agent/.claude
+COPY --chown=agent:agent docker/agent-claude-py.json /home/agent/.claude/.claude.json
+
+# MCP config — URL-based, connects to server's /mcp endpoint
+COPY --chown=agent:agent docker/agent-mcp-py.json /home/agent/app/.mcp.json
+
+# Skills
+COPY --chown=agent:agent skills/ /home/agent/.claude/skills/
+
+# System prompt
+COPY --chown=agent:agent docker/agent-claude.md CLAUDE.md
+
+# Ensure venv is on PATH
+ENV PATH="/home/agent/app/.venv/bin:$PATH"
+
+USER agent
+
+EXPOSE 9100
+
+CMD ["python", "-m", "agent_local.main"]

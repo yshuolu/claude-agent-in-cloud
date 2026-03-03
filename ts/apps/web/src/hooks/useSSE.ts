@@ -41,6 +41,7 @@ export function useSSE(url: string | null) {
     es.addEventListener("user", handleEvent);
     es.addEventListener("result", handleEvent);
     es.addEventListener("error", handleEvent);
+    es.addEventListener("turn_complete", handleEvent);
 
     es.addEventListener("done", () => {
       setStatus("done");

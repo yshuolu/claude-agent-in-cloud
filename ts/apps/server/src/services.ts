@@ -32,19 +32,6 @@ export async function createServices(): Promise<Services> {
   let agentRunner: AgentRunner;
 
   switch (runnerType) {
-    case "subprocess": {
-      const { SubprocessRunner } = await import(
-        "@cloud-agent/agent-manager"
-      );
-      const defaultScript = resolve(
-        __dirname,
-        "../../../packages/agent-local/dist/index.js",
-      );
-      agentRunner = new SubprocessRunner(
-        process.env.AGENT_SCRIPT_PATH ?? defaultScript,
-      );
-      break;
-    }
     case "flyio": {
       const { FlyRunner } = await import("@cloud-agent/agent-manager");
       const apiToken = process.env.FLY_API_TOKEN;
@@ -66,9 +53,16 @@ export async function createServices(): Promise<Services> {
     case "docker":
     default: {
       const { DockerRunner } = await import("@cloud-agent/agent-manager");
-      agentRunner = new DockerRunner(
+      const runner = new DockerRunner(
         process.env.AGENT_IMAGE ?? "cloud-agent-runner",
       );
+      // Auto-build agent image for local dev
+      const projectRoot = resolve(__dirname, "../../../..");
+      await runner.buildImage({
+        dockerfile: process.env.AGENT_DOCKERFILE ?? "docker/Dockerfile.agent",
+        context: projectRoot,
+      });
+      agentRunner = runner;
       break;
     }
   }

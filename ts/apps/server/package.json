@@ -15,12 +15,14 @@
     "@cloud-agent/event-store": "*",
     "@cloud-agent/memory-service": "*",
     "@cloud-agent/project-management": "*",
-    "@cloud-agent/task-store-lark": "*",
     "@cloud-agent/shared": "*",
+    "@cloud-agent/task-store-lark": "*",
     "@hono/node-server": "^1.13.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "dotenv": "^17.3.1",
     "hono": "^4.7.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

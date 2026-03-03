@@ -40,14 +40,10 @@ export class FlyRunner implements AgentRunner {
           image: this.config.agentImage,
           env: {
             AGENT_SESSION_ID: options.sessionId,
-            AGENT_PROMPT: options.prompt,
             AGENT_MODEL: options.model ?? "claude-sonnet-4-5-20250929",
             ANTHROPIC_API_KEY: options.apiKey,
             ...(options.serverUrl
               ? { SERVER_URL: options.serverUrl }
-              : {}),
-            ...(options.sdkSessionId
-              ? { AGENT_SDK_SESSION_ID: options.sdkSessionId }
               : {}),
             ...(options.authToken
               ? { AGENT_AUTH_TOKEN: options.authToken }
@@ -79,6 +75,9 @@ export class FlyRunner implements AgentRunner {
       id,
       sessionId: options.sessionId,
       logs,
+      async send() {
+        throw new Error("FlyRunner does not support multi-turn send()");
+      },
       stop: () => this.stopMachine(machineId),
       done,
     };

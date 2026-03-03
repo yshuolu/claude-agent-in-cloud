@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "project-management": {
+      "type": "http",
+      "url": "${SERVER_URL}/mcp"
+    }
+  }
+}
