@@ -4,6 +4,7 @@ import { TaskInput } from "./components/TaskInput";
 import { EventStream } from "./components/EventStream";
 import { CronPanel } from "./components/CronPanel";
 import { ProjectContext } from "./components/ProjectContext";
+import { CommStream } from "./components/CommStream";
 import { useSSE } from "./hooks/useSSE";
 import {
   createSession,
@@ -21,6 +22,7 @@ export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sseUrl, setSseUrl] = useState<string | null>(null);
+  const [sessionView, setSessionView] = useState<"events" | "comms">("comms");
   const { events, status, clear } = useSSE(sseUrl);
 
   const activeSession = sessions.find((s) => s.id === activeId);
@@ -118,12 +120,33 @@ export default function App() {
           <CronPanel onSessionsCreated={refresh} />
         ) : activeId ? (
           <>
-            <div className="px-4 py-2 border-b border-gray-700 text-xs text-gray-400 flex items-center gap-2">
-              <span className="font-mono">{activeId.slice(0, 8)}</span>
-              <span className="text-gray-600">|</span>
-              <span>{activeSession?.status ?? "unknown"}</span>
+            <div className="px-4 py-2 border-b border-gray-700 text-xs text-gray-400 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-mono">{activeId.slice(0, 8)}</span>
+                <span className="text-gray-600">|</span>
+                <span>{activeSession?.status ?? "unknown"}</span>
+              </div>
+              <div className="flex gap-1">
+                {(["comms", "events"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setSessionView(v)}
+                    className={`px-2 py-0.5 rounded text-xs capitalize ${
+                      sessionView === v
+                        ? "bg-gray-700 text-white"
+                        : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
             </div>
-            <EventStream events={events} status={status} />
+            {sessionView === "comms" ? (
+              <CommStream events={events} />
+            ) : (
+              <EventStream events={events} status={status} />
+            )}
             <TaskInput
               onSubmit={handleSubmit}
               disabled={activeSession?.status === "running"}

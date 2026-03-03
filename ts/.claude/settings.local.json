@@ -11,7 +11,8 @@
       "Bash(find /Users/yshuolu/Develop/claude-agent-in-cloud -name \"*skill*\" -type f 2>/dev/null | head -20)",
       "Bash(npx turbo build --force 2>&1)",
       "Bash(npx turbo typecheck --force 2>&1)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npx turbo build --filter=@cloud-agent/web --force 2>&1)"
     ]
   }
 }
