@@ -32,6 +32,9 @@ export class DockerRunner implements AgentRunner {
     if (options.sdkSessionId) {
       env.push(`AGENT_SDK_SESSION_ID=${options.sdkSessionId}`);
     }
+    if (options.authToken) {
+      env.push(`AGENT_AUTH_TOKEN=${options.authToken}`);
+    }
 
     const hostConfig: Docker.HostConfig = {
       AutoRemove: true,

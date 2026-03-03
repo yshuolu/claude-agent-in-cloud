@@ -1,8 +1,10 @@
 import { resolve, dirname } from "node:path";
+import { mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { EventStore } from "@cloud-agent/event-store";
 import type { MemoryService } from "@cloud-agent/memory-service";
-import type { AgentRunner } from "@cloud-agent/agent-manager";
+import type { AgentRunner, AgentStore } from "@cloud-agent/agent-manager";
+import type { TaskStore } from "@cloud-agent/project-management";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -10,6 +12,8 @@ export interface Services {
   eventStore: EventStore;
   memoryService: MemoryService;
   agentRunner: AgentRunner;
+  agentStore: AgentStore;
+  taskStore: TaskStore;
 }
 
 export async function createServices(): Promise<Services> {
@@ -69,9 +73,23 @@ export async function createServices(): Promise<Services> {
     }
   }
 
+  // SQLite stores — ensure data directory exists
+  const dataDir = resolve(__dirname, "../../../data");
+  mkdirSync(dataDir, { recursive: true });
+
+  const { SqliteAgentStore } = await import("@cloud-agent/agent-manager");
+  const agentDbPath = process.env.AGENT_DB_PATH ?? resolve(dataDir, "agents.db");
+  const agentStore = new SqliteAgentStore(agentDbPath);
+
+  const { SqliteTaskStore } = await import("@cloud-agent/project-management");
+  const taskDbPath = process.env.TASK_DB_PATH ?? resolve(dataDir, "tasks.db");
+  const taskStore = new SqliteTaskStore(taskDbPath);
+
   console.log("Event store: in-memory");
   console.log("Memory service: in-memory");
   console.log(`Agent runner: ${runnerType}`);
+  console.log(`Agent store: SQLite (${agentDbPath})`);
+  console.log(`Task store: SQLite (${taskDbPath})`);
 
-  return { eventStore, memoryService, agentRunner };
+  return { eventStore, memoryService, agentRunner, agentStore, taskStore };
 }

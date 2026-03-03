@@ -41,6 +41,9 @@ export class SubprocessRunner implements AgentRunner {
     if (options.sdkSessionId) {
       env.AGENT_SDK_SESSION_ID = options.sdkSessionId;
     }
+    if (options.authToken) {
+      env.AGENT_AUTH_TOKEN = options.authToken;
+    }
 
     const child = cpSpawn(
       "node",

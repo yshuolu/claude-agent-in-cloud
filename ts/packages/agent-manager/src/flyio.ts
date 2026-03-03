@@ -49,6 +49,9 @@ export class FlyRunner implements AgentRunner {
             ...(options.sdkSessionId
               ? { AGENT_SDK_SESSION_ID: options.sdkSessionId }
               : {}),
+            ...(options.authToken
+              ? { AGENT_AUTH_TOKEN: options.authToken }
+              : {}),
           },
           auto_destroy: true,
           restart: { policy: "no" },

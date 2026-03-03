@@ -9,3 +9,9 @@ export interface AgentEvent {
 export interface EventSink {
   emit(event: AgentEvent): Promise<void>;
 }
+
+export interface McpServerConfig {
+  name: string;
+  command: string;
+  args?: string[];
+}

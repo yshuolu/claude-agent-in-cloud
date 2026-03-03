@@ -19,16 +19,23 @@ import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { createServices } from "./services.js";
 import { initStore, initMemory } from "./session-store.js";
-import { initAgentRunner } from "./agent.js";
+import { initAgentRunner, initAgentStore } from "./agent.js";
+import { initAgentStore as initAuthAgentStore } from "./middleware/auth.js";
+import { initTaskStore } from "./routes/project-tasks.js";
 import sessions from "./routes/sessions.js";
 import tasks from "./routes/tasks.js";
 import events from "./routes/events.js";
+import projectTasks from "./routes/project-tasks.js";
 
-const { eventStore, memoryService, agentRunner } = await createServices();
+const { eventStore, memoryService, agentRunner, agentStore, taskStore } =
+  await createServices();
 
 initStore(eventStore);
 initMemory(memoryService);
 initAgentRunner(agentRunner);
+initAgentStore(agentStore);
+initAuthAgentStore(agentStore);
+initTaskStore(taskStore);
 
 const app = new Hono();
 
@@ -44,6 +51,7 @@ app.get("/health", (c) => c.json({ ok: true }));
 app.route("/sessions", sessions);
 app.route("/sessions", tasks);
 app.route("/sessions", events);
+app.route("/tasks", projectTasks);
 
 const port = Number(process.env.PORT ?? 8000);
 

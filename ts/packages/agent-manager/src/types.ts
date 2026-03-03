@@ -21,6 +21,26 @@ export interface SpawnOptions {
   serverUrl?: string;
   /** SDK session ID for resuming a prior session */
   sdkSessionId?: string;
+  /** Auth token for agent to authenticate with the server */
+  authToken?: string;
+}
+
+export interface AgentRecord {
+  id: string;
+  sessionId: string;
+  status: "running" | "stopped" | "error";
+  authToken: string;
+  createdAt: string;
+  stoppedAt: string | null;
+}
+
+export interface AgentStore {
+  save(record: AgentRecord): void;
+  get(id: string): AgentRecord | null;
+  getByToken(token: string): AgentRecord | null;
+  updateStatus(id: string, status: AgentRecord["status"]): void;
+  listBySession(sessionId: string): AgentRecord[];
+  close(): void;
 }
 
 export interface AgentRunner {

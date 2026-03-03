@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import type { StoredEvent } from "@cloud-agent/event-store";
-import type { AgentRunner } from "@cloud-agent/agent-manager";
+import type { AgentRunner, AgentStore } from "@cloud-agent/agent-manager";
 import {
   appendEvent,
   updateStatus,
@@ -11,9 +11,14 @@ import {
 } from "./session-store.js";
 
 let agentRunner: AgentRunner;
+let agentStore: AgentStore;
 
 export function initAgentRunner(runner: AgentRunner): void {
   agentRunner = runner;
+}
+
+export function initAgentStore(store: AgentStore): void {
+  agentStore = store;
 }
 
 export interface RunAgentOptions {
@@ -58,6 +63,19 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     process.env.SERVER_URL ??
     `http://localhost:${process.env.PORT ?? "8000"}`;
 
+  const authToken = uuidv4();
+  const agentId = uuidv4();
+
+  // Persist agent record with auth token
+  agentStore.save({
+    id: agentId,
+    sessionId,
+    status: "running",
+    authToken,
+    createdAt: new Date().toISOString(),
+    stoppedAt: null,
+  });
+
   let handle;
   try {
     handle = await agentRunner.spawn({
@@ -66,6 +84,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
       model: process.env.CLAUDE_MODEL ?? "claude-sonnet-4-5-20250929",
       apiKey,
       serverUrl,
+      authToken,
     });
   } catch (err) {
     const errorEvent: StoredEvent = {
@@ -92,8 +111,10 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     if (getSession(sessionId)) {
       if (exitCode !== null && exitCode !== 0) {
         updateStatus(sessionId, "error");
+        agentStore.updateStatus(agentId, "error");
       } else {
         updateStatus(sessionId, "completed");
+        agentStore.updateStatus(agentId, "stopped");
       }
 
       // Extract and store memories
@@ -119,6 +140,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
       };
       appendEvent(sessionId, errorEvent);
       updateStatus(sessionId, "error");
+      agentStore.updateStatus(agentId, "error");
     }
   } finally {
     setStopFn(sessionId, null);

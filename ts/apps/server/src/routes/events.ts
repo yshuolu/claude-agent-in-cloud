@@ -2,11 +2,12 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import type { StoredEvent } from "@cloud-agent/event-store";
 import { getSession, getEventStore, appendEvent } from "../session-store.js";
+import { agentAuth } from "../middleware/auth.js";
 
 const app = new Hono();
 
-// POST /:id/events — agent writes events via HTTP
-app.post("/:id/events", async (c) => {
+// POST /:id/events — agent writes events via HTTP (auth required)
+app.post("/:id/events", agentAuth, async (c) => {
   const sessionId = c.req.param("id");
   const entry = getSession(sessionId);
   if (!entry) {
