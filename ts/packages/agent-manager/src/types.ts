@@ -9,6 +9,8 @@ export interface AgentHandle {
   send(prompt: string): Promise<void>;
   /** Stop the agent gracefully, then force kill after timeout */
   stop(): Promise<void>;
+  /** URL to reach the agent (e.g. http://127.0.0.1:54321 for Docker) */
+  connectionUrl: string;
   /** Promise that resolves when the agent exits */
   done: Promise<{ exitCode: number | null }>;
 }
@@ -30,6 +32,7 @@ export interface AgentRecord {
   status: "running" | "stopped" | "error";
   authToken: string;
   createdAt: string;
+  connectionUrl: string;
   stoppedAt: string | null;
 }
 
@@ -43,6 +46,8 @@ export interface AgentStore {
 }
 
 export interface AgentRunner {
+  /** Build/pull image if needed (Docker rebuilds, Fly.io is a no-op) */
+  ensureImage?(): Promise<void>;
   /** Spawn a new agent process */
   spawn(options: SpawnOptions): Promise<AgentHandle>;
 }

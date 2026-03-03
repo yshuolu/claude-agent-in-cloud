@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { SessionList } from "./components/SessionList";
 import { TaskInput } from "./components/TaskInput";
 import { EventStream } from "./components/EventStream";
+import { CronPanel } from "./components/CronPanel";
 import { useSSE } from "./hooks/useSSE";
 import {
   createSession,
@@ -12,7 +13,10 @@ import {
   type Session,
 } from "./lib/api";
 
+type Tab = "sessions" | "run";
+
 export default function App() {
+  const [activeTab, setActiveTab] = useState<Tab>("sessions");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sseUrl, setSseUrl] = useState<string | null>(null);
@@ -90,7 +94,26 @@ export default function App() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col">
-        {activeId ? (
+        {/* Tab bar */}
+        <div className="flex border-b border-gray-700">
+          {(["sessions", "run"] as Tab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium capitalize ${
+                activeTab === tab
+                  ? "text-white border-b-2 border-blue-500"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "run" ? (
+          <CronPanel onSessionsCreated={refresh} />
+        ) : activeId ? (
           <>
             <div className="px-4 py-2 border-b border-gray-700 text-xs text-gray-400 flex items-center gap-2">
               <span className="font-mono">{activeId.slice(0, 8)}</span>

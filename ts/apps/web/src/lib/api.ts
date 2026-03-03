@@ -2,7 +2,7 @@ const BASE = "/api";
 
 export interface Session {
   id: string;
-  status: "idle" | "running" | "completed" | "error";
+  status: "starting" | "idle" | "running" | "completed" | "error";
   createdAt: string;
   updatedAt: string;
 }
@@ -39,4 +39,27 @@ export async function submitTask(
 
 export function eventsUrl(sessionId: string): string {
   return `${BASE}/sessions/${sessionId}/events`;
+}
+
+export interface CronTask {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  assignee: string | null;
+  labels: string[];
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RunResult {
+  tasks: CronTask[];
+  sessions: { taskId: string; taskTitle: string; sessionId: string }[];
+}
+
+export async function runCron(): Promise<RunResult> {
+  const res = await fetch(`${BASE}/cron/run`, { method: "POST" });
+  return res.json();
 }

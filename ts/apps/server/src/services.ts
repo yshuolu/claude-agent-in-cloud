@@ -53,16 +53,15 @@ export async function createServices(): Promise<Services> {
     case "docker":
     default: {
       const { DockerRunner } = await import("@cloud-agent/agent-manager");
-      const runner = new DockerRunner(
-        process.env.AGENT_IMAGE ?? "cloud-agent-runner",
-      );
-      // Auto-build agent image for local dev
       const projectRoot = resolve(__dirname, "../../../..");
-      await runner.buildImage({
-        dockerfile: process.env.AGENT_DOCKERFILE ?? "docker/Dockerfile.agent",
-        context: projectRoot,
-      });
-      agentRunner = runner;
+      agentRunner = new DockerRunner(
+        process.env.AGENT_IMAGE ?? "cloud-agent-runner",
+        undefined,
+        {
+          dockerfile: process.env.AGENT_DOCKERFILE ?? "docker/Dockerfile.agent",
+          context: projectRoot,
+        },
+      );
       break;
     }
   }
@@ -75,11 +74,27 @@ export async function createServices(): Promise<Services> {
   const agentDbPath = process.env.AGENT_DB_PATH ?? resolve(dataDir, "agents.db");
   const agentStore = new SqliteAgentStore(agentDbPath);
 
-  // Task store — SQLite (default) or Lark
+  // Task store — SQLite (default), Lark, or Linear
   const taskStoreType = process.env.TASK_STORE ?? "sqlite";
   let taskStore: TaskStore;
 
   switch (taskStoreType) {
+    case "linear": {
+      const { LinearTaskStore } = await import(
+        "@cloud-agent/task-store-linear"
+      );
+      if (!process.env.LINEAR_API_KEY) {
+        throw new Error(
+          "LINEAR_API_KEY is required for linear task store",
+        );
+      }
+      taskStore = new LinearTaskStore({
+        apiKey: process.env.LINEAR_API_KEY,
+        teamId: process.env.LINEAR_TEAM_ID,
+        projectId: process.env.LINEAR_PROJECT_ID,
+      });
+      break;
+    }
     case "lark": {
       const { LarkTaskStore } = await import("@cloud-agent/task-store-lark");
       if (!process.env.LARK_APP_ID || !process.env.LARK_APP_SECRET) {

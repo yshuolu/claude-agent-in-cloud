@@ -24,25 +24,16 @@ export function initAgentStore(store: AgentStore): void {
   agentStore = store;
 }
 
-export interface RunAgentOptions {
-  sessionId: string;
-  prompt: string;
-  projectId: string;
-}
-
-export async function runAgent(options: RunAgentOptions): Promise<void> {
-  const { sessionId, prompt, projectId } = options;
-
-  // If an agent is already running for this session, send the follow-up prompt
-  const existingHandle = agentHandles.get(sessionId);
-  if (existingHandle) {
-    updateStatus(sessionId, "running");
-    await existingHandle.send(prompt);
-    return;
-  }
-
-  // First turn — spawn a new agent container
-  updateStatus(sessionId, "running");
+/**
+ * Spawn a new agent container for a session. Sets status to "starting"
+ * during provisioning, then "idle" once the container is healthy.
+ * Called from session creation route (fire-and-forget).
+ */
+export async function spawnAgent(
+  sessionId: string,
+  projectId: string,
+): Promise<void> {
+  updateStatus(sessionId, "starting");
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -58,23 +49,32 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     return;
   }
 
-  // From inside Docker, localhost refers to the container — use host.docker.internal on macOS/Windows
+  // Build/pull image if needed (Docker layer caching makes this fast on no-op)
+  if (agentRunner.ensureImage) {
+    try {
+      await agentRunner.ensureImage();
+    } catch (err) {
+      const errorEvent: StoredEvent = {
+        id: uuidv4(),
+        sessionId,
+        timestamp: new Date().toISOString(),
+        type: "error",
+        data: {
+          message: `Failed to build agent image: ${err instanceof Error ? err.message : String(err)}`,
+        },
+      };
+      appendEvent(sessionId, errorEvent);
+      updateStatus(sessionId, "error");
+      return;
+    }
+  }
+
   const serverUrl =
     process.env.SERVER_URL ??
     `http://host.docker.internal:${process.env.PORT ?? "8000"}`;
 
   const authToken = uuidv4();
   const agentId = uuidv4();
-
-  // Persist agent record with auth token
-  agentStore.save({
-    id: agentId,
-    sessionId,
-    status: "running",
-    authToken,
-    createdAt: new Date().toISOString(),
-    stoppedAt: null,
-  });
 
   let handle: AgentHandle;
   try {
@@ -100,6 +100,17 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     return;
   }
 
+  // Persist agent record with auth token and connection URL
+  agentStore.save({
+    id: agentId,
+    sessionId,
+    status: "running",
+    authToken,
+    connectionUrl: handle.connectionUrl,
+    createdAt: new Date().toISOString(),
+    stoppedAt: null,
+  });
+
   agentHandles.set(sessionId, handle);
   setStopFn(sessionId, async () => {
     agentHandles.delete(sessionId);
@@ -111,11 +122,29 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
     streamLogs(handle.logs, sessionId);
   }
 
-  // Send the first prompt to the agent's HTTP endpoint
-  await handle.send(prompt);
+  // Container is healthy and ready for prompts
+  updateStatus(sessionId, "idle");
 
   // Monitor the agent process in the background
   monitorAgent(handle, sessionId, agentId, projectId);
+}
+
+/**
+ * Send a prompt to an already-running agent container.
+ * Returns an error string if the agent is not ready; null on success.
+ */
+export async function sendPrompt(
+  sessionId: string,
+  prompt: string,
+): Promise<string | null> {
+  const handle = agentHandles.get(sessionId);
+  if (!handle) {
+    return "No agent container running for this session";
+  }
+
+  updateStatus(sessionId, "running");
+  await handle.send(prompt);
+  return null;
 }
 
 function streamLogs(

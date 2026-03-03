@@ -1,4 +1,4 @@
-export type SessionStatus = "idle" | "running" | "completed" | "error";
+export type SessionStatus = "starting" | "idle" | "running" | "completed" | "error";
 
 export interface Session {
   id: string;

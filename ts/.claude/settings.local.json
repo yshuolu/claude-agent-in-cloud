@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx turbo build 2>&1)",
+      "Bash(npx turbo typecheck 2>&1)",
+      "mcp__claude_ai_Linear__get_project",
+      "Bash(npx turbo build --filter=@cloud-agent/task-store-linear --filter=@cloud-agent/server 2>&1)",
+      "Bash(npx turbo build --filter=@cloud-agent/task-store-linear --force 2>&1)",
+      "Bash(npx turbo build --filter=@cloud-agent/server --force 2>&1)",
+      "Bash(npx turbo build --filter=@cloud-agent/server --filter=@cloud-agent/web --force 2>&1)"
+    ]
+  }
+}

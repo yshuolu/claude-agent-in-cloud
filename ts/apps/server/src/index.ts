@@ -23,11 +23,13 @@ import { initAgentRunner, initAgentStore } from "./agent.js";
 import { initAgentStore as initAuthAgentStore } from "./middleware/auth.js";
 import { initTaskStore } from "./routes/project-tasks.js";
 import { initMcpTaskStore } from "./routes/mcp.js";
+import { initCronTaskStore } from "./routes/cron.js";
 import sessions from "./routes/sessions.js";
 import tasks from "./routes/tasks.js";
 import events from "./routes/events.js";
 import projectTasks from "./routes/project-tasks.js";
 import mcp from "./routes/mcp.js";
+import cron from "./routes/cron.js";
 
 const { eventStore, memoryService, agentRunner, agentStore, taskStore } =
   await createServices();
@@ -39,6 +41,7 @@ initAgentStore(agentStore);
 initAuthAgentStore(agentStore);
 initTaskStore(taskStore);
 initMcpTaskStore(taskStore);
+initCronTaskStore(taskStore);
 
 const app = new Hono();
 
@@ -56,6 +59,7 @@ app.route("/sessions", tasks);
 app.route("/sessions", events);
 app.route("/tasks", projectTasks);
 app.route("/mcp", mcp);
+app.route("/cron", cron);
 
 const port = Number(process.env.PORT ?? 8000);
 

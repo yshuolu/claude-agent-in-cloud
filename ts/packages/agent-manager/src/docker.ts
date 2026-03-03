@@ -12,21 +12,29 @@ export interface DockerBuildOptions {
 export class DockerRunner implements AgentRunner {
   private docker: Docker;
   private imageName: string;
+  private buildOptions: DockerBuildOptions | null;
 
   constructor(
     imageName = "cloud-agent-runner",
     socketPath?: string,
+    buildOptions?: DockerBuildOptions,
   ) {
     this.docker = new Docker(
       socketPath ? { socketPath } : undefined,
     );
     this.imageName = imageName;
+    this.buildOptions = buildOptions ?? null;
   }
 
   /**
-   * Build the agent Docker image. Docker layer caching handles
-   * skipping rebuilds when files haven't changed.
+   * Build/pull the agent Docker image. Called per-session via ensureImage().
+   * Docker layer caching handles skipping rebuilds when files haven't changed.
    */
+  async ensureImage(): Promise<void> {
+    if (!this.buildOptions) return;
+    await this.buildImage(this.buildOptions);
+  }
+
   async buildImage(opts: DockerBuildOptions): Promise<void> {
     const { execSync } = await import("node:child_process");
     console.log(`[docker] Building image "${this.imageName}" ...`);
@@ -122,6 +130,7 @@ export class DockerRunner implements AgentRunner {
     return {
       id,
       sessionId: options.sessionId,
+      connectionUrl: agentUrl,
       logs: readLines(logStream),
       async send(prompt: string) {
         const res = await fetch(`${agentUrl}/message`, {

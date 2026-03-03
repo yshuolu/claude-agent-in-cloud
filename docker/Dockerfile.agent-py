@@ -18,8 +18,8 @@ COPY py/packages/agent-local/pyproject.toml packages/agent-local/pyproject.toml
 # Create package source dirs so uv can resolve workspace members
 RUN mkdir -p packages/base-agent/src/base_agent && \
     touch packages/base-agent/src/base_agent/__init__.py && \
-    mkdir -p packages/agent-local/src/agent_local && \
-    touch packages/agent-local/src/agent_local/__init__.py
+    mkdir -p packages/agent-local/src/local_agent_runner && \
+    touch packages/agent-local/src/local_agent_runner/__init__.py
 
 # Install dependencies
 RUN uv sync --no-dev --no-editable
@@ -65,4 +65,4 @@ USER agent
 
 EXPOSE 9100
 
-CMD ["python", "-m", "agent_local.main"]
+CMD ["python", "-m", "local_agent_runner.main"]

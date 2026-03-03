@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(curl -s -X POST \"https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal\" \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -d '{\"app_id\":\"cli_a92c1e2843f8c060\",\"app_secret\":\"i9jpckAkXllg9srzc6uBTcOpYSNM7eh1\"}' | python3 -m json.tool)"
+    ],
+    "additionalDirectories": [
+      "/Users/yshuolu/Develop/pixel/py"
     ]
   }
 }

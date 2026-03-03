@@ -67,6 +67,8 @@ export class FlyRunner implements AgentRunner {
     // Wait for the machine to enter "started" state
     await this.waitForState(machineId, "started");
 
+    const connectionUrl = `https://${machineId}.fly.dev`;
+
     const logs = this.streamLogs(machineId);
 
     const done = this.pollUntilStopped(machineId);
@@ -74,6 +76,7 @@ export class FlyRunner implements AgentRunner {
     return {
       id,
       sessionId: options.sessionId,
+      connectionUrl,
       logs,
       async send() {
         throw new Error("FlyRunner does not support multi-turn send()");
