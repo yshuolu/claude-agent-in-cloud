@@ -35,8 +35,9 @@ RUN uv sync --no-dev --no-editable
 FROM python:3.12-alpine AS runner
 
 # Node.js is required because claude CLI is a Node script
-RUN apk add --no-cache nodejs npm && \
-    npm install -g @anthropic-ai/claude-code
+# Chromium for Playwright MCP browser automation
+RUN apk add --no-cache nodejs npm chromium && \
+    npm install -g @anthropic-ai/claude-code @playwright/mcp
 
 # Non-root user — claude CLI refuses bypassPermissions as root
 RUN adduser -D agent
@@ -60,6 +61,9 @@ COPY --chown=agent:agent docker/agent-claude.md CLAUDE.md
 
 # Ensure venv is on PATH
 ENV PATH="/home/agent/app/.venv/bin:$PATH"
+
+# Playwright uses system Chromium
+ENV CHROME_PATH="/usr/bin/chromium-browser"
 
 USER agent
 

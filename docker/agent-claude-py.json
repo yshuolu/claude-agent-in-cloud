@@ -3,7 +3,7 @@
     "/home/agent/app": {
       "allowedTools": [],
       "mcpServers": {},
-      "enabledMcpjsonServers": ["project-management"],
+      "enabledMcpjsonServers": ["project-management", "project-context", "communicate", "playwright"],
       "hasTrustDialogAccepted": true,
       "hasClaudeMdExternalIncludesApproved": true
     }

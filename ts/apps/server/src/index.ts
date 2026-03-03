@@ -24,11 +24,19 @@ import { initAgentStore as initAuthAgentStore } from "./middleware/auth.js";
 import { initTaskStore } from "./routes/project-tasks.js";
 import { initMcpTaskStore } from "./routes/mcp.js";
 import { initCronTaskStore } from "./routes/cron.js";
+import {
+  initCommunicateStore,
+  initCommunicateSessionUpdater,
+} from "./routes/mcp-communicate.js";
+import { updateStatus } from "./session-store.js";
 import sessions from "./routes/sessions.js";
 import tasks from "./routes/tasks.js";
 import events from "./routes/events.js";
 import projectTasks from "./routes/project-tasks.js";
 import mcp from "./routes/mcp.js";
+import mcpProjectContext from "./routes/mcp-project-context.js";
+import mcpCommunicate from "./routes/mcp-communicate.js";
+import projectContext from "./routes/project-context.js";
 import cron from "./routes/cron.js";
 
 const { eventStore, memoryService, agentRunner, agentStore, taskStore } =
@@ -42,6 +50,10 @@ initAuthAgentStore(agentStore);
 initTaskStore(taskStore);
 initMcpTaskStore(taskStore);
 initCronTaskStore(taskStore);
+initCommunicateStore(eventStore);
+initCommunicateSessionUpdater((id, status) =>
+  updateStatus(id, status as Parameters<typeof updateStatus>[1]),
+);
 
 const app = new Hono();
 
@@ -59,6 +71,9 @@ app.route("/sessions", tasks);
 app.route("/sessions", events);
 app.route("/tasks", projectTasks);
 app.route("/mcp", mcp);
+app.route("/mcp/project-context", mcpProjectContext);
+app.route("/mcp/communicate", mcpCommunicate);
+app.route("/project-context", projectContext);
 app.route("/cron", cron);
 
 const port = Number(process.env.PORT ?? 8000);

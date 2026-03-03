@@ -63,3 +63,17 @@ export async function runCron(): Promise<RunResult> {
   const res = await fetch(`${BASE}/cron/run`, { method: "POST" });
   return res.json();
 }
+
+export async function getProjectContext(): Promise<string> {
+  const res = await fetch(`${BASE}/project-context`);
+  const data = await res.json();
+  return data.content;
+}
+
+export async function updateProjectContext(content: string): Promise<void> {
+  await fetch(`${BASE}/project-context`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+}

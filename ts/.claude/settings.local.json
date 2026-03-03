@@ -7,7 +7,11 @@
       "Bash(npx turbo build --filter=@cloud-agent/task-store-linear --filter=@cloud-agent/server 2>&1)",
       "Bash(npx turbo build --filter=@cloud-agent/task-store-linear --force 2>&1)",
       "Bash(npx turbo build --filter=@cloud-agent/server --force 2>&1)",
-      "Bash(npx turbo build --filter=@cloud-agent/server --filter=@cloud-agent/web --force 2>&1)"
+      "Bash(npx turbo build --filter=@cloud-agent/server --filter=@cloud-agent/web --force 2>&1)",
+      "Bash(find /Users/yshuolu/Develop/claude-agent-in-cloud -name \"*skill*\" -type f 2>/dev/null | head -20)",
+      "Bash(npx turbo build --force 2>&1)",
+      "Bash(npx turbo typecheck --force 2>&1)",
+      "WebSearch"
     ]
   }
 }

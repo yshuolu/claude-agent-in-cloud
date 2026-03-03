@@ -3,6 +3,7 @@ import { SessionList } from "./components/SessionList";
 import { TaskInput } from "./components/TaskInput";
 import { EventStream } from "./components/EventStream";
 import { CronPanel } from "./components/CronPanel";
+import { ProjectContext } from "./components/ProjectContext";
 import { useSSE } from "./hooks/useSSE";
 import {
   createSession,
@@ -13,7 +14,7 @@ import {
   type Session,
 } from "./lib/api";
 
-type Tab = "sessions" | "run";
+type Tab = "sessions" | "run" | "context";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("sessions");
@@ -96,7 +97,7 @@ export default function App() {
       <div className="flex-1 flex flex-col">
         {/* Tab bar */}
         <div className="flex border-b border-gray-700">
-          {(["sessions", "run"] as Tab[]).map((tab) => (
+          {(["sessions", "run", "context"] as Tab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -111,7 +112,9 @@ export default function App() {
           ))}
         </div>
 
-        {activeTab === "run" ? (
+        {activeTab === "context" ? (
+          <ProjectContext />
+        ) : activeTab === "run" ? (
           <CronPanel onSessionsCreated={refresh} />
         ) : activeId ? (
           <>

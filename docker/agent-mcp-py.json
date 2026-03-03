@@ -3,6 +3,18 @@
     "project-management": {
       "type": "http",
       "url": "${SERVER_URL}/mcp"
+    },
+    "project-context": {
+      "type": "http",
+      "url": "${SERVER_URL}/mcp/project-context"
+    },
+    "communicate": {
+      "type": "http",
+      "url": "${SERVER_URL}/mcp/communicate"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp", "--headless"]
     }
   }
 }
