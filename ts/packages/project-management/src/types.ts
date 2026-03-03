@@ -45,10 +45,10 @@ export interface UpdateTaskInput {
 }
 
 export interface TaskStore {
-  create(input: CreateTaskInput): Task;
-  get(id: string): Task | null;
-  list(query?: TaskQuery): Task[];
-  update(id: string, input: UpdateTaskInput): Task | null;
-  delete(id: string): boolean;
+  create(input: CreateTaskInput): Promise<Task>;
+  get(id: string): Promise<Task | null>;
+  list(query?: TaskQuery): Promise<Task[]>;
+  update(id: string, input: UpdateTaskInput): Promise<Task | null>;
+  delete(id: string): Promise<boolean>;
   close(): void;
 }

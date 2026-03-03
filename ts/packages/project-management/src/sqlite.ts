@@ -67,7 +67,7 @@ export class SqliteTaskStore implements TaskStore {
     `);
   }
 
-  create(input: CreateTaskInput): Task {
+  async create(input: CreateTaskInput): Promise<Task> {
     const now = new Date().toISOString();
     const id = randomUUID();
 
@@ -89,17 +89,17 @@ export class SqliteTaskStore implements TaskStore {
       now,
     );
 
-    return this.get(id)!;
+    return (await this.get(id))!;
   }
 
-  get(id: string): Task | null {
+  async get(id: string): Promise<Task | null> {
     const row = this.db
       .prepare("SELECT * FROM tasks WHERE id = ?")
       .get(id) as TaskRow | undefined;
     return row ? rowToTask(row) : null;
   }
 
-  list(query?: TaskQuery): Task[] {
+  async list(query?: TaskQuery): Promise<Task[]> {
     const conditions: string[] = [];
     const params: unknown[] = [];
 
@@ -143,8 +143,8 @@ export class SqliteTaskStore implements TaskStore {
     return rows.map(rowToTask);
   }
 
-  update(id: string, input: UpdateTaskInput): Task | null {
-    const existing = this.get(id);
+  async update(id: string, input: UpdateTaskInput): Promise<Task | null> {
+    const existing = await this.get(id);
     if (!existing) return null;
 
     const sets: string[] = [];
@@ -189,10 +189,10 @@ export class SqliteTaskStore implements TaskStore {
       .prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`)
       .run(...params);
 
-    return this.get(id)!;
+    return (await this.get(id))!;
   }
 
-  delete(id: string): boolean {
+  async delete(id: string): Promise<boolean> {
     const result = this.db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
     return result.changes > 0;
   }

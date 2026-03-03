@@ -81,15 +81,42 @@ export async function createServices(): Promise<Services> {
   const agentDbPath = process.env.AGENT_DB_PATH ?? resolve(dataDir, "agents.db");
   const agentStore = new SqliteAgentStore(agentDbPath);
 
-  const { SqliteTaskStore } = await import("@cloud-agent/project-management");
-  const taskDbPath = process.env.TASK_DB_PATH ?? resolve(dataDir, "tasks.db");
-  const taskStore = new SqliteTaskStore(taskDbPath);
+  // Task store — SQLite (default) or Lark
+  const taskStoreType = process.env.TASK_STORE ?? "sqlite";
+  let taskStore: TaskStore;
+
+  switch (taskStoreType) {
+    case "lark": {
+      const { LarkTaskStore } = await import("@cloud-agent/task-store-lark");
+      if (!process.env.LARK_APP_ID || !process.env.LARK_APP_SECRET) {
+        throw new Error(
+          "LARK_APP_ID and LARK_APP_SECRET are required for lark task store",
+        );
+      }
+      taskStore = new LarkTaskStore({
+        appId: process.env.LARK_APP_ID,
+        appSecret: process.env.LARK_APP_SECRET,
+        baseUrl: process.env.LARK_BASE_URL,
+      });
+      break;
+    }
+    case "sqlite":
+    default: {
+      const { SqliteTaskStore } = await import(
+        "@cloud-agent/project-management"
+      );
+      const taskDbPath =
+        process.env.TASK_DB_PATH ?? resolve(dataDir, "tasks.db");
+      taskStore = new SqliteTaskStore(taskDbPath);
+      break;
+    }
+  }
 
   console.log("Event store: in-memory");
   console.log("Memory service: in-memory");
   console.log(`Agent runner: ${runnerType}`);
   console.log(`Agent store: SQLite (${agentDbPath})`);
-  console.log(`Task store: SQLite (${taskDbPath})`);
+  console.log(`Task store: ${taskStoreType}`);
 
   return { eventStore, memoryService, agentRunner, agentStore, taskStore };
 }

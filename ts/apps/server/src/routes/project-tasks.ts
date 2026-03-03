@@ -19,12 +19,12 @@ app.post("/", async (c) => {
   if (!body.title) {
     return c.json({ error: "title is required" }, 400);
   }
-  const task = taskStore.create(body);
+  const task = await taskStore.create(body);
   return c.json(task, 201);
 });
 
 // GET /tasks — list tasks with optional filters
-app.get("/", (c) => {
+app.get("/", async (c) => {
   const query: TaskQuery = {};
   const status = c.req.query("status");
   if (status) query.status = status as TaskStatus;
@@ -41,13 +41,13 @@ app.get("/", (c) => {
   const offset = c.req.query("offset");
   if (offset) query.offset = parseInt(offset, 10);
 
-  const tasks = taskStore.list(query);
+  const tasks = await taskStore.list(query);
   return c.json(tasks);
 });
 
 // GET /tasks/:taskId — get single task
-app.get("/:taskId", (c) => {
-  const task = taskStore.get(c.req.param("taskId"));
+app.get("/:taskId", async (c) => {
+  const task = await taskStore.get(c.req.param("taskId"));
   if (!task) {
     return c.json({ error: "Task not found" }, 404);
   }
@@ -57,7 +57,7 @@ app.get("/:taskId", (c) => {
 // PATCH /tasks/:taskId — update task
 app.patch("/:taskId", async (c) => {
   const body = (await c.req.json()) as UpdateTaskInput;
-  const task = taskStore.update(c.req.param("taskId"), body);
+  const task = await taskStore.update(c.req.param("taskId"), body);
   if (!task) {
     return c.json({ error: "Task not found" }, 404);
   }
@@ -65,8 +65,8 @@ app.patch("/:taskId", async (c) => {
 });
 
 // DELETE /tasks/:taskId — delete task
-app.delete("/:taskId", (c) => {
-  const deleted = taskStore.delete(c.req.param("taskId"));
+app.delete("/:taskId", async (c) => {
+  const deleted = await taskStore.delete(c.req.param("taskId"));
   if (!deleted) {
     return c.json({ error: "Task not found" }, 404);
   }

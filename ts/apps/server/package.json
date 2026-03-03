@@ -15,6 +15,7 @@
     "@cloud-agent/event-store": "*",
     "@cloud-agent/memory-service": "*",
     "@cloud-agent/project-management": "*",
+    "@cloud-agent/task-store-lark": "*",
     "@cloud-agent/shared": "*",
     "@hono/node-server": "^1.13.0",
     "dotenv": "^17.3.1",
