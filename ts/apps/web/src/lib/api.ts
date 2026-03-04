@@ -26,14 +26,57 @@ export async function deleteSession(id: string): Promise<void> {
   await fetch(`${BASE}/sessions/${id}`, { method: "DELETE" });
 }
 
+// --- Repo Context ---
+
+export interface RepoContext {
+  owner: string;
+  repo: string;
+  fullName: string;
+  branch: string;
+  cloneUrl: string;
+}
+
+export interface GitHubRepoOption {
+  id: number;
+  name: string;
+  fullName: string;
+  private: boolean;
+  defaultBranch: string;
+  url: string;
+  owner: string;
+}
+
+export interface GitHubBranch {
+  name: string;
+  protected: boolean;
+}
+
+export async function listUserRepos(query?: string): Promise<GitHubRepoOption[]> {
+  const params = query ? `?q=${encodeURIComponent(query)}` : "";
+  const res = await fetch(`${BASE}/github/repos${params}`);
+  if (res.status === 401) return [];
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function listRepoBranches(
+  owner: string,
+  repo: string,
+): Promise<GitHubBranch[]> {
+  const res = await fetch(`${BASE}/github/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function submitTask(
   sessionId: string,
   prompt: string,
+  repoContext?: RepoContext,
 ): Promise<void> {
   await fetch(`${BASE}/sessions/${sessionId}/tasks`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, ...(repoContext ? { repoContext } : {}) }),
   });
 }
 
@@ -103,6 +146,38 @@ export async function listGitHubRepos(
     `${BASE}/github/installations/${installationId}/repos`,
   );
   if (!res.ok) return [];
+  return res.json();
+}
+
+// --- GitHub Token ---
+
+export interface GitHubTokenStatus {
+  configured: boolean;
+  masked?: string;
+}
+
+export async function getGitHubTokenStatus(): Promise<GitHubTokenStatus> {
+  const res = await fetch(`${BASE}/project-context/github-token`);
+  return res.json();
+}
+
+export async function setGitHubToken(token: string): Promise<GitHubTokenStatus> {
+  const res = await fetch(`${BASE}/project-context/github-token`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  return res.json();
+}
+
+export async function clearGitHubToken(): Promise<void> {
+  await fetch(`${BASE}/project-context/github-token`, { method: "DELETE" });
+}
+
+export async function detectGitHubToken(): Promise<GitHubTokenStatus> {
+  const res = await fetch(`${BASE}/project-context/github-token/detect`, {
+    method: "POST",
+  });
   return res.json();
 }
 

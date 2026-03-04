@@ -4,7 +4,12 @@
       "Bash(uv sync:*)",
       "Bash(curl -s -X POST \"https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal\" \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -d '{\"app_id\":\"cli_a92c1e2843f8c060\",\"app_secret\":\"i9jpckAkXllg9srzc6uBTcOpYSNM7eh1\"}' | python3 -m json.tool)",
       "mcp__claude_ai_Linear__get_project",
-      "Bash(grep -r \"send_message\\\\|mark_end\" /Users/darren_lu/Develop/claude-agent-in-cloud --include=\"*.md\" --include=\"*.json\" 2>/dev/null | head -20)"
+      "Bash(grep -r \"send_message\\\\|mark_end\" /Users/darren_lu/Develop/claude-agent-in-cloud --include=\"*.md\" --include=\"*.json\" 2>/dev/null | head -20)",
+      "Bash(find /Users/darren_lu/Develop/claude-agent-in-cloud/ts/apps/server/src -type f -name \"*.ts\" 2>/dev/null | sort)",
+      "Bash(find /Users/darren_lu/Develop/claude-agent-in-cloud/ts/packages/agent-manager/src -type f -name \"*.ts\" 2>/dev/null | sort)",
+      "Bash(tree -L 3 -I 'node_modules|dist' /Users/darren_lu/Develop/claude-agent-in-cloud/ts/apps/web 2>/dev/null || find /Users/darren_lu/Develop/claude-agent-in-cloud/ts/apps/web -not -path '*/node_modules/*' -not -path '*/.vite/*' -not -path '*/dist/*' -type f | sort)",
+      "Bash(cd /Users/darren_lu/Develop/claude-agent-in-cloud/ts && npx turbo typecheck 2>&1)",
+      "Bash(find /Users/darren_lu/Develop/claude-agent-in-cloud -type f \\\\\\( -name \"Dockerfile*\" -o -name \"*.yml\" -o -name \"*.yaml\" -o -name \"package.json\" -o -name \".npmrc\" -o -name \"pnpm-lock.yaml\" -o -name \"package-lock.json\" -o -name \"*.sh\" -o -name \"*.cmake\" -o -name \"CMakeLists.txt\" \\\\\\) 2>/dev/null | head -80)"
     ],
     "additionalDirectories": [
       "/Users/yshuolu/Develop/pixel/py"

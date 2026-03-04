@@ -37,7 +37,7 @@ FROM python:3.12-alpine AS runner
 # Node.js is required because claude CLI is a Node script
 # Chromium for Playwright MCP browser automation
 # git for repo operations
-RUN apk add --no-cache nodejs npm chromium git bash && \
+RUN apk add --no-cache nodejs npm chromium git bash github-cli && \
     npm install -g @anthropic-ai/claude-code @playwright/mcp
 
 # Non-root user — claude CLI refuses bypassPermissions as root
@@ -67,6 +67,9 @@ ENV PATH="/home/agent/app/.venv/bin:$PATH"
 ENV CHROME_PATH="/usr/bin/chromium-browser"
 
 USER agent
+
+RUN git config --global credential.helper \
+    '!f() { echo "username=x-access-token"; echo "password=${GH_TOKEN}"; }; f'
 
 EXPOSE 9100
 

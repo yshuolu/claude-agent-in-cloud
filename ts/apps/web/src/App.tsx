@@ -4,6 +4,7 @@ import { TaskInput } from "./components/TaskInput";
 import { EventStream } from "./components/EventStream";
 import { CronPanel } from "./components/CronPanel";
 import { ProjectContext } from "./components/ProjectContext";
+import { GitHubPanel } from "./components/GitHubPanel";
 import { CommStream } from "./components/CommStream";
 import { useSSE } from "./hooks/useSSE";
 import {
@@ -14,9 +15,10 @@ import {
   submitTask,
   eventsUrl,
   type Session,
+  type RepoContext,
 } from "./lib/api";
 
-type Tab = "sessions" | "run" | "context";
+type Tab = "sessions" | "run" | "context" | "github";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("sessions");
@@ -81,7 +83,7 @@ export default function App() {
     }
   };
 
-  const handleSubmit = async (prompt: string) => {
+  const handleSubmit = async (prompt: string, repoContext?: RepoContext) => {
     if (!activeId) return;
     // Update local status
     setSessions((prev) =>
@@ -89,7 +91,7 @@ export default function App() {
     );
     clear();
     setSseUrl(eventsUrl(activeId));
-    await submitTask(activeId, prompt);
+    await submitTask(activeId, prompt, repoContext);
   };
 
   return (
@@ -109,7 +111,7 @@ export default function App() {
       <div className="flex-1 flex flex-col">
         {/* Tab bar */}
         <div className="flex border-b border-gray-700">
-          {(["sessions", "run", "context"] as Tab[]).map((tab) => (
+          {(["sessions", "run", "context", "github"] as Tab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -124,7 +126,9 @@ export default function App() {
           ))}
         </div>
 
-        {activeTab === "context" ? (
+        {activeTab === "github" ? (
+          <GitHubPanel />
+        ) : activeTab === "context" ? (
           <ProjectContext />
         ) : activeTab === "run" ? (
           <CronPanel onSessionsCreated={refresh} />

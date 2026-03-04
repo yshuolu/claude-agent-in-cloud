@@ -16,6 +16,9 @@ COPY ts/mcps/project-management/package.json mcps/project-management/package.jso
 # Include claude-agent-sdk at root to ensure hoisting
 RUN echo '{"private":true,"workspaces":["packages/*","mcps/*"],"devDependencies":{"typescript":"^5.7.0"},"dependencies":{"@anthropic-ai/claude-agent-sdk":"^0.2.63"}}' > package.json
 
+# Build tools for native addons (cpu-features, etc.)
+RUN apk add --no-cache python3 make g++ cmake
+
 # Install dependencies — npm hoists everything to root node_modules
 RUN npm install
 
@@ -36,6 +39,12 @@ RUN npx tsc --project packages/base-agent/tsconfig.json && \
 
 # Runtime stage: clean Alpine image
 FROM node:22-alpine AS runner
+
+RUN apk add --no-cache git github-cli
+RUN mkdir -p /workspace
+
+# Configure git to use GH_TOKEN for HTTPS auth (injected at runtime by agent.ts)
+RUN git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password=${GH_TOKEN}"; }; f'
 
 WORKDIR /app
 

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { getProjectContext, updateProjectContext } from "../lib/api";
-import { GitHubRepos } from "./GitHubRepos";
 
 export function ProjectContext() {
   const [content, setContent] = useState("");
@@ -29,10 +28,6 @@ export function ProjectContext() {
 
   return (
     <div className="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
-      <GitHubRepos />
-
-      <hr className="border-gray-700" />
-
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-gray-300">
           Project Context (business.md)

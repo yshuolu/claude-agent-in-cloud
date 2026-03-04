@@ -10,6 +10,7 @@ import {
   getEventStore,
   getMemoryService,
 } from "./session-store.js";
+import { getGitHubToken } from "./project-context.js";
 
 let agentRunner: AgentRunner;
 let agentStore: AgentStore;
@@ -82,9 +83,16 @@ export async function spawnAgent(
   const authToken = uuidv4();
   const agentId = uuidv4();
 
-  // Auto-detect GitHub installations and mint token for the first one
+  // GitHub token: saved user token takes priority, then GitHub App fallback
   const extraEnv: Record<string, string> = {};
-  if (githubApp) {
+  // GH_TOKEN is used by the gh CLI and our git credential helper
+  const savedToken = getGitHubToken();
+  if (savedToken) {
+    extraEnv.GH_TOKEN = savedToken;
+    console.log(
+      `[agent:${sessionId.slice(0, 8)}] Using saved GitHub token`,
+    );
+  } else if (githubApp) {
     try {
       const installations = await githubApp.listInstallations();
       if (installations.length > 0) {
@@ -92,7 +100,6 @@ export async function spawnAgent(
         const token =
           await githubApp.createInstallationToken(installation.id);
         extraEnv.GH_TOKEN = token.token;
-        extraEnv.GITHUB_TOKEN = token.token;
         console.log(
           `[agent:${sessionId.slice(0, 8)}] GitHub token minted for ${installation.account.login} (expires ${token.expiresAt})`,
         );

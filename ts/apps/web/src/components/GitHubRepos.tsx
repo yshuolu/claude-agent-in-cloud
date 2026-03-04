@@ -116,7 +116,16 @@ export function GitHubRepos() {
             <span className="text-xs text-gray-500">
               {item.repos.length} repo{item.repos.length !== 1 ? "s" : ""}
             </span>
-            <span className="ml-auto text-xs text-gray-500">
+            <a
+              href={`https://github.com/settings/installations/${item.installation.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="ml-auto text-xs text-red-400 hover:text-red-300"
+            >
+              Unbind
+            </a>
+            <span className="text-xs text-gray-500">
               {item.expanded ? "\u25B2" : "\u25BC"}
             </span>
           </button>
