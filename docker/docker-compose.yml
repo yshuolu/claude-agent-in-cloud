@@ -32,15 +32,6 @@ services:
       - server
     restart: unless-stopped
 
-  agent:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.agent
-    image: cloud-agent-runner
-    # Not started by compose — spawned on demand by the server
-    profiles:
-      - build-only
-
   agent-py:
     build:
       context: ..

@@ -18,8 +18,6 @@ Turborepo monorepo (all TypeScript):
 │   │   ├── web/                # React UI for task submission & live feedback
 │   │   └── server/             # API server (REST + SSE streaming)
 │   ├── packages/
-│   │   ├── base-agent/         # Core agent session logic + EventSink interface
-│   │   ├── agent-local/        # Local dev entry point (HttpEventSink wiring)
 │   │   ├── event-store/        # Event persistence layer (in-memory)
 │   │   ├── memory-service/     # Agent memory / context management (in-memory)
 │   │   ├── agent-manager/      # Agent lifecycle (spawn, monitor, stop)
@@ -28,7 +26,7 @@ Turborepo monorepo (all TypeScript):
 │   ├── package.json            # Root package.json with workspaces
 │   └── tsconfig.base.json      # Shared TypeScript config
 ├── docker/
-│   ├── Dockerfile.agent        # Claude Code agent runner image
+│   ├── Dockerfile.agent-py     # Python agent runner image
 │   ├── Dockerfile.server       # API server image
 │   └── docker-compose.yml      # Full stack orchestration
 └── CLAUDE.md
@@ -58,14 +56,6 @@ Agent process --HTTP POST--> /sessions/:id/events --> InMemoryEventStore
 - **Lean Docker images** — use Alpine base images. Keep the runtime stage clean. Never copy `devDependencies` or test fixtures into production images.
 
 ## Packages
-
-### base-agent (`ts/packages/base-agent/`)
-
-Core agent session library. Defines `EventSink` interface (write-only, async `emit()`) and `AgentEvent` type. Exports `runAgentSession()` which drives the Claude Agent SDK and emits events through the sink. Has no knowledge of transport — the sink implementation determines how events are delivered.
-
-### agent-local (`ts/packages/agent-local/`)
-
-Local/Docker entry point for running agents. Reads env vars (`SERVER_URL`, `AGENT_PROMPT`, `AGENT_SESSION_ID`, etc.), creates an `HttpEventSink` that POSTs events to the server, and calls `runAgentSession()` from `base-agent`. Not used in cloud deployments where a different sink/entry point would be used.
 
 ### event-store (`ts/packages/event-store/`)
 
@@ -113,7 +103,7 @@ docker compose -f docker/docker-compose.yml down   # Tear down
 ### Images
 
 - **server** — Node.js API server. Exposes port 8000. Requires `ANTHROPIC_API_KEY` env var.
-- **agent** — Claude Code runner. Each agent task spawns a container from this image.
+- **agent-py** — Python Claude Code runner. Each agent task spawns a container from this image.
 - **web** — Static frontend served by nginx. Connects to the API server via reverse proxy.
 
 ### Environment Variables
@@ -122,8 +112,8 @@ docker compose -f docker/docker-compose.yml down   # Tear down
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Yes | API key for Claude |
 | `AGENT_RUNNER` | No | Agent backend: `subprocess` (local dev), `docker` (default), `flyio` |
-| `AGENT_IMAGE` | No | Docker image name for the agent (default: `cloud-agent-runner`) |
-| `AGENT_DOCKERFILE` | No | Dockerfile path for auto-build (default: `docker/Dockerfile.agent`) |
+| `AGENT_IMAGE` | No | Docker image name for the agent (default: `cloud-agent-runner-py`) |
+| `AGENT_DOCKERFILE` | No | Dockerfile path for auto-build (default: `docker/Dockerfile.agent-py`) |
 | `SERVER_URL` | No | URL agents use to POST events back (default: `http://localhost:8000`) |
 | `CORS_ORIGINS` | No | Allowed CORS origins (default: `http://localhost:3000`) |
 

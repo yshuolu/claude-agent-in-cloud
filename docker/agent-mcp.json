@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "project-management": {
-      "command": "node",
-      "args": ["mcps/project-management/dist/index.js"]
-    }
-  }
-}

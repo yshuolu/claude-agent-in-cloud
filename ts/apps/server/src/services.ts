@@ -57,10 +57,10 @@ export async function createServices(): Promise<Services> {
       const { DockerRunner } = await import("@cloud-agent/agent-manager");
       const projectRoot = resolve(__dirname, "../../../..");
       agentRunner = new DockerRunner(
-        process.env.AGENT_IMAGE ?? "cloud-agent-runner",
+        process.env.AGENT_IMAGE ?? "cloud-agent-runner-py",
         undefined,
         {
-          dockerfile: process.env.AGENT_DOCKERFILE ?? "docker/Dockerfile.agent",
+          dockerfile: process.env.AGENT_DOCKERFILE ?? "docker/Dockerfile.agent-py",
           context: projectRoot,
         },
       );
