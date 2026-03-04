@@ -5,6 +5,7 @@ import type { EventStore } from "@cloud-agent/event-store";
 import type { MemoryService } from "@cloud-agent/memory-service";
 import type { AgentRunner, AgentStore } from "@cloud-agent/agent-manager";
 import type { TaskStore } from "@cloud-agent/project-management";
+import type { GitHubAppService } from "@cloud-agent/github-app";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -14,6 +15,7 @@ export interface Services {
   agentRunner: AgentRunner;
   agentStore: AgentStore;
   taskStore: TaskStore;
+  githubApp: GitHubAppService | null;
 }
 
 export async function createServices(): Promise<Services> {
@@ -121,11 +123,23 @@ export async function createServices(): Promise<Services> {
     }
   }
 
+  // GitHub App — optional, configured via env vars
+  let githubApp: GitHubAppService | null = null;
+  const ghAppId = process.env.GITHUB_APP_ID;
+  const ghPrivateKey = process.env.GITHUB_APP_PRIVATE_KEY;
+  if (ghAppId && ghPrivateKey) {
+    const { DefaultGitHubAppService } = await import(
+      "@cloud-agent/github-app"
+    );
+    githubApp = new DefaultGitHubAppService(ghAppId, ghPrivateKey);
+  }
+
   console.log("Event store: in-memory");
   console.log("Memory service: in-memory");
   console.log(`Agent runner: ${runnerType}`);
   console.log(`Agent store: SQLite (${agentDbPath})`);
   console.log(`Task store: ${taskStoreType}`);
+  console.log(`GitHub App: ${githubApp ? "configured" : "not configured"}`);
 
-  return { eventStore, memoryService, agentRunner, agentStore, taskStore };
+  return { eventStore, memoryService, agentRunner, agentStore, taskStore, githubApp };
 }

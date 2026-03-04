@@ -13,6 +13,7 @@
   "dependencies": {
     "@cloud-agent/agent-manager": "*",
     "@cloud-agent/event-store": "*",
+    "@cloud-agent/github-app": "*",
     "@cloud-agent/memory-service": "*",
     "@cloud-agent/project-management": "*",
     "@cloud-agent/shared": "*",

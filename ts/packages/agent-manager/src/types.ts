@@ -24,6 +24,8 @@ export interface SpawnOptions {
   serverUrl?: string;
   /** Auth token for agent to authenticate with the server */
   authToken?: string;
+  /** Additional environment variables to inject into the agent process */
+  extraEnv?: Record<string, string>;
 }
 
 export interface AgentRecord {

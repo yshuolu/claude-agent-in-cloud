@@ -8,6 +8,7 @@ import { CommStream } from "./components/CommStream";
 import { useSSE } from "./hooks/useSSE";
 import {
   createSession,
+  getSession,
   listSessions,
   deleteSession,
   submitTask,

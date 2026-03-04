@@ -70,6 +70,11 @@ export class DockerRunner implements AgentRunner {
     if (options.authToken) {
       env.push(`AGENT_AUTH_TOKEN=${options.authToken}`);
     }
+    if (options.extraEnv) {
+      for (const [key, value] of Object.entries(options.extraEnv)) {
+        env.push(`${key}=${value}`);
+      }
+    }
 
     const container = await this.docker.createContainer({
       Image: this.imageName,

@@ -28,6 +28,8 @@ import {
   initCommunicateStore,
   initCommunicateSessionUpdater,
 } from "./routes/mcp-communicate.js";
+import { initGitHubApp } from "./routes/github.js";
+import { initGitHubApp as initAgentGitHubApp } from "./agent.js";
 import { updateStatus } from "./session-store.js";
 import sessions from "./routes/sessions.js";
 import tasks from "./routes/tasks.js";
@@ -38,8 +40,9 @@ import mcpProjectContext from "./routes/mcp-project-context.js";
 import mcpCommunicate from "./routes/mcp-communicate.js";
 import projectContext from "./routes/project-context.js";
 import cron from "./routes/cron.js";
+import github from "./routes/github.js";
 
-const { eventStore, memoryService, agentRunner, agentStore, taskStore } =
+const { eventStore, memoryService, agentRunner, agentStore, taskStore, githubApp } =
   await createServices();
 
 initStore(eventStore);
@@ -54,6 +57,8 @@ initCommunicateStore(eventStore);
 initCommunicateSessionUpdater((id, status) =>
   updateStatus(id, status as Parameters<typeof updateStatus>[1]),
 );
+initGitHubApp(githubApp);
+initAgentGitHubApp(githubApp);
 
 const app = new Hono();
 
@@ -75,6 +80,7 @@ app.route("/mcp/communicate", mcpCommunicate);
 app.route("/mcp", mcp);
 app.route("/project-context", projectContext);
 app.route("/cron", cron);
+app.route("/github", github);
 
 const port = Number(process.env.PORT ?? 8000);
 

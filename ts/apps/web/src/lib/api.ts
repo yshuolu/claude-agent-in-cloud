@@ -64,6 +64,50 @@ export async function runCron(): Promise<RunResult> {
   return res.json();
 }
 
+// --- GitHub ---
+
+export interface GitHubStatus {
+  configured: boolean;
+  appSlug?: string;
+}
+
+export interface GitHubInstallation {
+  id: number;
+  account: { login: string; id: number; type: string };
+}
+
+export interface GitHubRepo {
+  id: number;
+  name: string;
+  fullName: string;
+  private: boolean;
+  defaultBranch: string;
+  url: string;
+}
+
+export async function getGitHubStatus(): Promise<GitHubStatus> {
+  const res = await fetch(`${BASE}/github/status`);
+  return res.json();
+}
+
+export async function listGitHubInstallations(): Promise<GitHubInstallation[]> {
+  const res = await fetch(`${BASE}/github/installations`);
+  if (res.status === 501) return [];
+  return res.json();
+}
+
+export async function listGitHubRepos(
+  installationId: number,
+): Promise<GitHubRepo[]> {
+  const res = await fetch(
+    `${BASE}/github/installations/${installationId}/repos`,
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// --- Project Context ---
+
 export async function getProjectContext(): Promise<string> {
   const res = await fetch(`${BASE}/project-context`);
   const data = await res.json();

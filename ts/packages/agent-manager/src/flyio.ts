@@ -48,6 +48,7 @@ export class FlyRunner implements AgentRunner {
             ...(options.authToken
               ? { AGENT_AUTH_TOKEN: options.authToken }
               : {}),
+            ...(options.extraEnv ?? {}),
           },
           auto_destroy: true,
           restart: { policy: "no" },

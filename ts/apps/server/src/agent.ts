@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import type { StoredEvent } from "@cloud-agent/event-store";
 import type { AgentRunner, AgentHandle, AgentStore } from "@cloud-agent/agent-manager";
+import type { GitHubAppService } from "@cloud-agent/github-app";
 import {
   appendEvent,
   updateStatus,
@@ -12,6 +13,7 @@ import {
 
 let agentRunner: AgentRunner;
 let agentStore: AgentStore;
+let githubApp: GitHubAppService | null = null;
 
 // Track live agent handles per session
 const agentHandles = new Map<string, AgentHandle>();
@@ -22,6 +24,10 @@ export function initAgentRunner(runner: AgentRunner): void {
 
 export function initAgentStore(store: AgentStore): void {
   agentStore = store;
+}
+
+export function initGitHubApp(service: GitHubAppService | null): void {
+  githubApp = service;
 }
 
 /**
@@ -76,6 +82,48 @@ export async function spawnAgent(
   const authToken = uuidv4();
   const agentId = uuidv4();
 
+  // Auto-detect GitHub installations and mint token for the first one
+  const extraEnv: Record<string, string> = {};
+  if (githubApp) {
+    try {
+      const installations = await githubApp.listInstallations();
+      if (installations.length > 0) {
+        const installation = installations[0];
+        const token =
+          await githubApp.createInstallationToken(installation.id);
+        extraEnv.GH_TOKEN = token.token;
+        extraEnv.GITHUB_TOKEN = token.token;
+        console.log(
+          `[agent:${sessionId.slice(0, 8)}] GitHub token minted for ${installation.account.login} (expires ${token.expiresAt})`,
+        );
+        if (installations.length > 1) {
+          console.log(
+            `[agent:${sessionId.slice(0, 8)}] ${installations.length} installations available: ${installations.map((i) => i.account.login).join(", ")}`,
+          );
+        }
+      } else {
+        console.log(
+          `[agent:${sessionId.slice(0, 8)}] GitHub App configured but no installations found`,
+        );
+      }
+    } catch (err) {
+      console.warn(
+        `[agent:${sessionId.slice(0, 8)}] Failed to mint GitHub token:`,
+        err,
+      );
+      const warnEvent: StoredEvent = {
+        id: uuidv4(),
+        sessionId,
+        timestamp: new Date().toISOString(),
+        type: "system",
+        data: {
+          message: `Failed to mint GitHub token: ${err instanceof Error ? err.message : String(err)}. Agent will run without GitHub access.`,
+        },
+      };
+      appendEvent(sessionId, warnEvent);
+    }
+  }
+
   let handle: AgentHandle;
   try {
     handle = await agentRunner.spawn({
@@ -84,6 +132,7 @@ export async function spawnAgent(
       apiKey,
       serverUrl,
       authToken,
+      ...(Object.keys(extraEnv).length > 0 ? { extraEnv } : {}),
     });
   } catch (err) {
     const errorEvent: StoredEvent = {
