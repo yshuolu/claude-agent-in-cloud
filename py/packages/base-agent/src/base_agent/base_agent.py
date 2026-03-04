@@ -37,6 +37,7 @@ ALLOWED_TOOLS = [
     "mcp__project-management__get_task",
     "mcp__project-management__update_task",
     "mcp__project-management__delete_task",
+    "mcp__project-context__get_project_context",
     "mcp__communicate__send_message",
     "mcp__communicate__mark_end",
 ]
@@ -146,7 +147,7 @@ class AgentSession:
             allowed_tools=ALLOWED_TOOLS,
             permission_mode="bypassPermissions",
             max_turns=50,
-            cwd=".",
+            cwd="/app/workspace",
             setting_sources=["user", "project"],
             stderr=lambda data: print(f"[agent:stderr] {data.rstrip()}", flush=True),
         )

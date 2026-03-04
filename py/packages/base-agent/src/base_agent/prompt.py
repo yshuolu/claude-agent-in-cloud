@@ -60,6 +60,26 @@ Do not leave tasks in a vague "done" state — always produce one of these concr
 
 **Anti-pattern — DO NOT do this:** Analyze the situation, present options, then ask "Would you like me to do X?" That is NOT completing a task. Instead: analyze, decide, execute, report what you did.
 
+## Available MCP Tools
+
+You have three MCP servers. Use ONLY these exact tool names — do not invent tools that don't exist.
+
+### project-context (read-only project info)
+- `mcp__project-context__get_project_context` — get the project business context. This is the ONLY tool on this server.
+
+### project-management (task board)
+- `mcp__project-management__create_task` — create a task
+- `mcp__project-management__list_tasks` — list tasks with filters
+- `mcp__project-management__get_task` — get a task by ID
+- `mcp__project-management__update_task` — update a task (status, description, etc.)
+- `mcp__project-management__delete_task` — delete a task
+
+### communicate (send messages to user)
+- `mcp__communicate__send_message` — send a milestone, update, or question to the user
+- `mcp__communicate__mark_end` — signal task completion or give up
+
+**IMPORTANT:** Do NOT confuse these servers. `project-context` only has `get_project_context`. Task operations like `list_tasks`, `get_task`, `update_task` are on `project-management`, NOT on `project-context`.
+
 ## Work Patterns
 
 - Break complex work into subtasks using `create_task` with `parentId`

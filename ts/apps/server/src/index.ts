@@ -70,9 +70,9 @@ app.route("/sessions", sessions);
 app.route("/sessions", tasks);
 app.route("/sessions", events);
 app.route("/tasks", projectTasks);
-app.route("/mcp", mcp);
 app.route("/mcp/project-context", mcpProjectContext);
 app.route("/mcp/communicate", mcpCommunicate);
+app.route("/mcp", mcp);
 app.route("/project-context", projectContext);
 app.route("/cron", cron);
 

@@ -1,6 +1,6 @@
 {
   "projects": {
-    "/home/agent/app": {
+    "/app/workspace": {
       "allowedTools": [],
       "mcpServers": {},
       "enabledMcpjsonServers": ["project-management", "project-context", "communicate", "playwright"],

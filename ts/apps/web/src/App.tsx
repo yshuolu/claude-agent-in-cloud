@@ -65,10 +65,19 @@ export default function App() {
     }
   };
 
-  const handleSelect = (id: string) => {
+  const handleSelect = async (id: string) => {
     setActiveId(id);
     clear();
     setSseUrl(eventsUrl(id));
+    // Refresh session status from server to avoid stale "running" state
+    try {
+      const session = await getSession(id);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status: session.status } : s)),
+      );
+    } catch {
+      // Best-effort refresh
+    }
   };
 
   const handleSubmit = async (prompt: string) => {
