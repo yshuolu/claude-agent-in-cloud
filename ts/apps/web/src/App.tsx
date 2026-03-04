@@ -22,7 +22,7 @@ export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sseUrl, setSseUrl] = useState<string | null>(null);
-  const [sessionView, setSessionView] = useState<"events" | "comms">("comms");
+  const [sessionView, setSessionView] = useState<"events" | "comms">("events");
   const { events, status, clear } = useSSE(sseUrl);
 
   const activeSession = sessions.find((s) => s.id === activeId);

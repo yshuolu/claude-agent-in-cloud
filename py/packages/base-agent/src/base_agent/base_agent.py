@@ -19,6 +19,7 @@ from claude_agent_sdk import (
     UserMessage,
 )
 
+from .prompt import SYSTEM_PROMPT
 from .types import AgentEvent
 
 DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
@@ -36,6 +37,8 @@ ALLOWED_TOOLS = [
     "mcp__project-management__get_task",
     "mcp__project-management__update_task",
     "mcp__project-management__delete_task",
+    "mcp__communicate__send_message",
+    "mcp__communicate__mark_end",
 ]
 
 
@@ -139,6 +142,7 @@ class AgentSession:
     async def __aenter__(self) -> AgentSession:
         options = ClaudeAgentOptions(
             model=self._model,
+            system_prompt=SYSTEM_PROMPT,
             allowed_tools=ALLOWED_TOOLS,
             permission_mode="bypassPermissions",
             max_turns=50,

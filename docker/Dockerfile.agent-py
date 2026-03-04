@@ -56,9 +56,6 @@ COPY --chown=agent:agent docker/agent-mcp-py.json /home/agent/app/.mcp.json
 # Skills
 COPY --chown=agent:agent skills/ /home/agent/.claude/skills/
 
-# System prompt
-COPY --chown=agent:agent docker/agent-claude.md CLAUDE.md
-
 # Ensure venv is on PATH
 ENV PATH="/home/agent/app/.venv/bin:$PATH"
 
