@@ -8,6 +8,10 @@ COPY ts/packages/shared/package.json ./packages/shared/
 COPY ts/packages/event-store/package.json ./packages/event-store/
 COPY ts/packages/memory-service/package.json ./packages/memory-service/
 COPY ts/packages/agent-manager/package.json ./packages/agent-manager/
+COPY ts/packages/project-management/package.json ./packages/project-management/
+COPY ts/packages/task-store-lark/package.json ./packages/task-store-lark/
+COPY ts/packages/task-store-linear/package.json ./packages/task-store-linear/
+COPY ts/packages/github-app/package.json ./packages/github-app/
 COPY ts/apps/server/package.json ./apps/server/
 RUN npm install
 
@@ -18,11 +22,19 @@ COPY ts/packages/shared/ ./packages/shared/
 COPY ts/packages/event-store/ ./packages/event-store/
 COPY ts/packages/memory-service/ ./packages/memory-service/
 COPY ts/packages/agent-manager/ ./packages/agent-manager/
+COPY ts/packages/project-management/ ./packages/project-management/
+COPY ts/packages/task-store-lark/ ./packages/task-store-lark/
+COPY ts/packages/task-store-linear/ ./packages/task-store-linear/
+COPY ts/packages/github-app/ ./packages/github-app/
 COPY ts/apps/server/ ./apps/server/
 RUN npm run build --workspace=@cloud-agent/shared && \
     npm run build --workspace=@cloud-agent/event-store && \
     npm run build --workspace=@cloud-agent/memory-service && \
     npm run build --workspace=@cloud-agent/agent-manager && \
+    npm run build --workspace=@cloud-agent/project-management && \
+    npm run build --workspace=@cloud-agent/task-store-lark && \
+    npm run build --workspace=@cloud-agent/task-store-linear && \
+    npm run build --workspace=@cloud-agent/github-app && \
     npm run build --workspace=@cloud-agent/server
 
 # Run
@@ -37,6 +49,14 @@ COPY --from=build /app/packages/memory-service/dist ./packages/memory-service/di
 COPY --from=build /app/packages/memory-service/package.json ./packages/memory-service/
 COPY --from=build /app/packages/agent-manager/dist ./packages/agent-manager/dist
 COPY --from=build /app/packages/agent-manager/package.json ./packages/agent-manager/
+COPY --from=build /app/packages/project-management/dist ./packages/project-management/dist
+COPY --from=build /app/packages/project-management/package.json ./packages/project-management/
+COPY --from=build /app/packages/task-store-lark/dist ./packages/task-store-lark/dist
+COPY --from=build /app/packages/task-store-lark/package.json ./packages/task-store-lark/
+COPY --from=build /app/packages/task-store-linear/dist ./packages/task-store-linear/dist
+COPY --from=build /app/packages/task-store-linear/package.json ./packages/task-store-linear/
+COPY --from=build /app/packages/github-app/dist ./packages/github-app/dist
+COPY --from=build /app/packages/github-app/package.json ./packages/github-app/
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/server/package.json ./apps/server/
 COPY --from=build /app/package.json ./
