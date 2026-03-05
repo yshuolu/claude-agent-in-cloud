@@ -12,6 +12,8 @@ export interface LarkTaskStoreConfig {
   appId: string;
   appSecret: string;
   baseUrl?: string;
+  userToken?: string;
+  tasklistGuid?: string;
 }
 
 interface TokenCache {
@@ -53,7 +55,10 @@ const DEFAULT_BASE_URL = "https://open.larksuite.com";
 const TOKEN_REFRESH_MARGIN_MS = 5 * 60 * 1000; // refresh 5 min before expiry
 
 export class LarkTaskStore implements TaskStore {
-  private config: Required<LarkTaskStoreConfig>;
+  private config: Required<Pick<LarkTaskStoreConfig, "appId" | "appSecret" | "baseUrl">> & {
+    userToken?: string;
+    tasklistGuid?: string;
+  };
   private tokenCache: TokenCache | null = null;
 
   constructor(config: LarkTaskStoreConfig) {
@@ -61,6 +66,8 @@ export class LarkTaskStore implements TaskStore {
       appId: config.appId,
       appSecret: config.appSecret,
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
+      userToken: config.userToken,
+      tasklistGuid: config.tasklistGuid,
     };
   }
 
@@ -154,7 +161,7 @@ export class LarkTaskStore implements TaskStore {
     const assigneeMember = lark.members?.find((m) => m.role === "assignee");
 
     let status: TaskStatus;
-    if (lark.completed_at) {
+    if (lark.completed_at && lark.completed_at !== "0") {
       status = "done";
     } else {
       status = extra.status ?? "todo";
@@ -229,22 +236,66 @@ export class LarkTaskStore implements TaskStore {
     }
   }
 
+  private async requestWithToken<T>(
+    method: string,
+    path: string,
+    token: string,
+    body?: unknown,
+  ): Promise<T> {
+    const url = `${this.config.baseUrl}/open-apis/task/v2${path}`;
+    const res = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Lark API error: ${method} ${path} → ${res.status}`);
+    }
+
+    const json = (await res.json()) as LarkResponse<T>;
+    if (json.code !== 0) {
+      throw new Error(`Lark API error: ${json.msg}`);
+    }
+
+    return json.data;
+  }
+
   async list(query?: TaskQuery): Promise<Task[]> {
-    const params = new URLSearchParams();
-    if (query?.limit) params.set("page_size", String(query.limit));
-    if (query?.offset) params.set("page_token", String(query.offset));
+    let items: LarkTask[];
 
-    const qs = params.toString();
-    const path = `/tasks${qs ? `?${qs}` : ""}`;
+    if (this.config.userToken && this.config.tasklistGuid) {
+      // Use tasklist endpoint with user token
+      const params = new URLSearchParams();
+      if (query?.limit) params.set("page_size", String(query.limit));
+      if (query?.offset) params.set("page_token", String(query.offset));
+      const qs = params.toString();
+      const path = `/tasklists/${this.config.tasklistGuid}/tasks${qs ? `?${qs}` : ""}`;
 
-    // Note: list endpoint returns empty with tenant_access_token.
-    // Requires user_access_token for actual results.
-    const data = await this.request<{
-      items?: LarkTask[];
-      page_token?: string;
-    }>("GET", path);
+      const data = await this.requestWithToken<{
+        items?: LarkTask[];
+        page_token?: string;
+      }>("GET", path, this.config.userToken);
+      items = data.items ?? [];
+    } else {
+      // Fallback: direct tasks endpoint with tenant token
+      const params = new URLSearchParams();
+      if (query?.limit) params.set("page_size", String(query.limit));
+      if (query?.offset) params.set("page_token", String(query.offset));
+      const qs = params.toString();
+      const path = `/tasks${qs ? `?${qs}` : ""}`;
 
-    let tasks = (data.items ?? []).map((t) => this.larkToTask(t));
+      const data = await this.request<{
+        items?: LarkTask[];
+        page_token?: string;
+      }>("GET", path);
+      items = data.items ?? [];
+    }
+
+    let tasks = items.map((t) => this.larkToTask(t));
 
     // Client-side filtering since Lark doesn't support these filters natively
     if (query?.status) {

@@ -108,6 +108,8 @@ export async function createServices(): Promise<Services> {
         appId: process.env.LARK_APP_ID,
         appSecret: process.env.LARK_APP_SECRET,
         baseUrl: process.env.LARK_BASE_URL,
+        userToken: process.env.LARK_USER_TOKEN,
+        tasklistGuid: process.env.LARK_TASKLIST_GUID,
       });
       break;
     }

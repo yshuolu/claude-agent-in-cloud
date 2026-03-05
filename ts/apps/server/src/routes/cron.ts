@@ -12,10 +12,25 @@ export function initCronTaskStore(store: TaskStore): void {
 
 const app = new Hono();
 
-// POST /run — fetch todo tasks, create a session + agent per task, send prompt
-app.post("/run", async (c) => {
+// GET /tasks — fetch todo tasks without spawning agents
+app.get("/tasks", async (c) => {
   const tasks = await taskStore.list({ status: "todo" });
-  console.log(`[run] Found ${tasks.length} todo task(s):`, tasks.map((t) => t.title));
+  return c.json({ tasks });
+});
+
+// POST /run — spawn agents for selected task IDs (or all todo tasks if none specified)
+app.post("/run", async (c) => {
+  const body = await c.req.json().catch(() => ({})) as { taskIds?: string[] };
+
+  let tasks;
+  if (body.taskIds && body.taskIds.length > 0) {
+    const all = await taskStore.list({ status: "todo" });
+    tasks = all.filter((t) => body.taskIds!.includes(t.id));
+  } else {
+    tasks = await taskStore.list({ status: "todo" });
+  }
+
+  console.log(`[run] Spawning agents for ${tasks.length} task(s):`, tasks.map((t) => t.title));
 
   if (tasks.length === 0) {
     return c.json({ tasks: [], sessions: [] });

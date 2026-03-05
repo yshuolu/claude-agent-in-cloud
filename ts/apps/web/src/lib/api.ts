@@ -102,8 +102,18 @@ export interface RunResult {
   sessions: { taskId: string; taskTitle: string; sessionId: string }[];
 }
 
-export async function runCron(): Promise<RunResult> {
-  const res = await fetch(`${BASE}/cron/run`, { method: "POST" });
+export async function fetchTasks(): Promise<CronTask[]> {
+  const res = await fetch(`${BASE}/cron/tasks`);
+  const data = await res.json();
+  return data.tasks;
+}
+
+export async function runCron(taskIds?: string[]): Promise<RunResult> {
+  const res = await fetch(`${BASE}/cron/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(taskIds ? { taskIds } : {}),
+  });
   return res.json();
 }
 
