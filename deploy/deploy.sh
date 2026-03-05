@@ -18,20 +18,11 @@ fi
 
 echo "=== Deploying to ${VM_IP} ==="
 
-# Sync project files (exclude node_modules, dist, .git)
-echo "--- Syncing files ---"
-rsync -avz --delete \
-  --exclude 'node_modules' \
-  --exclude 'dist' \
-  --exclude '.git' \
-  --exclude 'ts/data' \
-  --exclude '.sl' \
-  ./ "${VM_USER}@${VM_IP}:${REMOTE_DIR}/"
-
 # Build and start on remote
-echo "--- Starting services ---"
+echo "--- Pulling latest and starting services ---"
 ssh "${VM_USER}@${VM_IP}" bash -s <<EOF
 cd ${REMOTE_DIR}
+git checkout -- . && git clean -fd && git pull
 
 # Build agent image first (needed by server at runtime)
 docker compose -f ${COMPOSE_FILE} build ${BUILD_FLAG} agent-py
