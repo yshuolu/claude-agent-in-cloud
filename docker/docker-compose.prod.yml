@@ -1,8 +1,7 @@
-env_file:
-  - ../.env
-
 services:
   server:
+    env_file:
+      - ../.env
     build:
       context: ..
       dockerfile: docker/Dockerfile.server
